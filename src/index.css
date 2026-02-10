@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply m-0 text-text bg-panel text-base leading-relaxed;
+    font-family: "Noto Sans CJK SC", "Source Han Sans SC", "Alibaba PuHuiTi", Inter, "SF Pro Display", "Segoe UI", sans-serif;
+  }
+
+  img {
+    @apply max-w-full block;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
+
+@layer components {
+  .page {
+    @apply min-h-screen;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 60%);
+  }
+
+  .container {
+    @apply w-full max-w-container mx-auto px-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center h-11 px-5 rounded-full font-semibold text-[15px] cursor-pointer transition-all duration-150;
+  }
+
+  .btn:focus-visible {
+    @apply outline-none;
+    box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.3);
+  }
+
+  .btn:active {
+    @apply translate-y-px;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white;
+  }
+
+  .btn-primary:hover {
+    @apply bg-primary-dark;
+  }
+
+  .btn-secondary {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-primary/[0.18];
+  }
+
+  .btn-outline {
+    @apply bg-transparent text-primary border border-primary/40;
+  }
+
+  .btn-outline:hover {
+    @apply bg-primary/[0.08];
+  }
+
+  .section {
+    @apply py-24;
+  }
+
+  .card {
+    @apply p-6 rounded-[20px] border border-border/90 bg-white shadow-card;
+  }
+
+  .input {
+    @apply h-12 px-4 rounded-xl border border-border text-[15px] bg-white transition-all duration-200;
+  }
+
+  .input:focus {
+    @apply outline-none border-primary;
+    box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.2);
+  }
+
+  .badge {
+    @apply inline-flex items-center py-2.5 px-3.5 rounded-full text-sm bg-black/[0.04];
+  }
+}
+
+@layer utilities {
+  .no-scroll {
+    @apply overflow-hidden;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+  }
+}
+
+/* Research page specific styles */
+[data-page="research"] .page {
+  background: radial-gradient(circle at top, rgba(47, 111, 237, 0.1), transparent 45%),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 70%);
+}
+
+/* Bottom CTA section */
+.bottom-cta {
+  background: linear-gradient(130deg, #0b1020, #12182a);
+}
+
+/* Hero background */
+.hero-bg {
+  background: radial-gradient(circle at top right, rgba(47, 111, 237, 0.12), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(27, 191, 114, 0.12), transparent 60%);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  reachflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reachflow
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - reachflow-network
+
+networks:
+  reachflow-network:
+    driver: bridge
