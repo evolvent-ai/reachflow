@@ -1,73 +1,225 @@
-# React + TypeScript + Vite
+# 联脉 ReachFlow
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">
+  <img src="public/icon.png" alt="联脉 Logo" width="80" />
+</p>
 
-Currently, two official plugins are available:
+<p align="center">
+  <strong>AI 驱动的可达触达引擎</strong><br/>
+  找到对的人，24 小时内让他看到你
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<p align="center">
+  <a href="#功能特性">功能特性</a> •
+  <a href="#技术栈">技术栈</a> •
+  <a href="#快速开始">快速开始</a> •
+  <a href="#项目结构">项目结构</a> •
+  <a href="#开发指南">开发指南</a>
+</p>
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 简介
 
-## Expanding the ESLint configuration
+联脉 ReachFlow 是一个 AI 驱动的外联引擎，帮助企业精准识别关键联系人，补全多通道触达方式，并验证可达性。适用于外贸获客、影响者投放、招聘寻源、公关传播等场景。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 核心能力
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **精准识别** - 组织图谱与角色优先级模型直达"能拍板的人"
+- **多通道补全** - 邮箱、电话、官网表单、社媒入口一键同步
+- **可达评分** - 投递性、有效性、渠道属性结合预测触达概率
+- **可解释流程** - 来源链接、验证轨迹、外联日志完整可导出
+- **合规风控** - 仅用公开数据，拒联名录 + 频控，全链路审计
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 功能特性
+
+### 🏠 首页 (HomePage)
+- 品牌展示与价值主张
+- 三步工作流介绍
+- 三大应用场景展示（外贸、投放、招聘）
+- 客户评价与信任背书
+- FAQ 常见问题
+
+### 🔍 AI 背调实验台 (ResearchPage)
+- 实时流式对话界面
+- 多 Provider 支持（OpenAI / Anthropic / Gemini）
+- 研究日志实时展示
+- 高级设置（自定义 API Key、模型、Base URL）
+- 会话历史持久化
+
+### 🔐 用户认证
+- Clerk 身份认证集成
+- 登录/注册页面
+- 受保护路由
+
+---
+
+## 技术栈
+
+### 前端
+- **React 19** - UI 框架
+- **TypeScript** - 类型安全
+- **Vite 7** - 构建工具
+- **React Router 7** - 路由管理
+- **Tailwind CSS 3** - 样式框架
+- **Zustand 5** - 状态管理
+- **React Markdown** - Markdown 渲染
+
+### 认证
+- **Clerk** - 用户认证与授权
+
+### 工具库
+- **Lucide React** - 图标库
+- **Remark GFM** - GitHub Flavored Markdown 支持
+
+---
+
+## 快速开始
+
+### 环境要求
+- Node.js 18+
+- npm 9+
+
+### 安装依赖
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 环境变量配置
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+创建 `.env` 文件：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
+```env
+# Clerk 认证配置
+VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+
+# API 基础地址
+VITE_API_BASE_URL=/api
+```
+
+### 开发模式
+
+```bash
+npm run dev
+```
+
+服务将在 http://localhost:8080 启动
+
+### 构建生产版本
+
+```bash
+npm run build
+```
+
+### 预览生产构建
+
+```bash
+npm run preview
+```
+
+---
+
+## 项目结构
+
+```
+reachflow/
+├── public/                 # 静态资源
+│   ├── logos/             # 合作伙伴 Logo
+│   ├── icon.png           # 应用图标
+│   └── og-image.svg       # Open Graph 图片
+├── src/
+│   ├── components/        # 组件
+│   │   ├── auth/          # 认证相关
+│   │   ├── home/          # 首页区块
+│   │   ├── layout/        # 布局组件
+│   │   └── ui/            # UI 组件
+│   ├── constants/         # 常量定义
+│   ├── hooks/             # 自定义 Hooks
+│   ├── pages/             # 页面组件
+│   ├── services/          # API 服务
+│   ├── stores/            # Zustand 状态管理
+│   ├── types/             # TypeScript 类型
+│   ├── utils/             # 工具函数
+│   ├── App.tsx            # 应用入口
+│   └── router.tsx         # 路由配置
+├── legacy/                # 旧版静态页面
+├── nginx/                 # Nginx 配置
+├── Dockerfile             # Docker 构建
+└── docker-compose.yml     # Docker Compose 配置
+```
+
+---
+
+## 开发指南
+
+### 代码规范
+
+```bash
+# 运行 ESLint 检查
+npm run lint
+```
+
+### 关键文件说明
+
+| 文件 | 说明 |
+|------|------|
+| `src/pages/ResearchPage.tsx` | AI 背调实验台主页面 |
+| `src/services/research.ts` | SSE 流式请求服务 |
+| `src/stores/researchStore.ts` | 研究页面状态管理 |
+| `src/components/home/` | 首页各区块组件 |
+
+### API 代理配置
+
+开发环境下，Vite 代理配置在 `vite.config.ts`：
+
+```typescript
+server: {
+  proxy: {
+    '/api': {
+      target: 'http://your-api-server',
+      changeOrigin: true,
     },
   },
-])
+}
 ```
+
+---
+
+## Docker 部署
+
+### 构建镜像
+
+```bash
+docker build -t reachflow .
+```
+
+### 运行容器
+
+```bash
+docker-compose up -d
+```
+
+---
+
+## 贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
+
+---
+
+## 许可证
+
+[MIT](LICENSE)
+
+---
+
+<p align="center">
+  Made with ❤️ by 联脉 ReachFlow Team
+</p>

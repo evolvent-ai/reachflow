@@ -12,6 +12,7 @@ interface ResearchState {
   messages: ChatMessage[];
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   updateLastMessage: (content: string) => void;
+  finishStreaming: () => void;
   clearMessages: () => void;
   
   timeline: TimelineEntry[];
@@ -55,7 +56,15 @@ export const useResearchStore = create<ResearchState>()(
         const messages = [...state.messages];
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === 'assistant') {
-          lastMessage.content = content;
+          lastMessage.content += content;
+        }
+        return { messages };
+      }),
+      finishStreaming: () => set((state) => {
+        const messages = [...state.messages];
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant') {
+          lastMessage.isStreaming = false;
         }
         return { messages };
       }),
@@ -98,6 +107,16 @@ export const useResearchStore = create<ResearchState>()(
         messages: state.messages,
         settings: state.settings,
       }),
+      onRehydrateStorage: () => (state) => {
+        // 恢复时清除所有消息的 loading 状态
+        if (state?.messages) {
+          state.messages.forEach((msg: ChatMessage) => {
+            if (msg.isStreaming) {
+              msg.isStreaming = false;
+            }
+          });
+        }
+      },
     }
   )
 );

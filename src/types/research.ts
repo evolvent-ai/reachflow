@@ -14,11 +14,14 @@ export type EventType =
   | 'final'
   | 'error'
   | 'ping'
-  | 'done';
+  | 'done'
+  | 'close';
 
 export interface SSEEvent {
-  type: EventType;
+  type?: EventType;
+  event?: string;
   timestamp?: number;
+  data?: any;
   [key: string]: any;
 }
 

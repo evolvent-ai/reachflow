@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Square, Trash2, X } from 'lucide-react';
+import { Send, Square, Trash2, X, Loader2, Octagon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useResearchStore } from '@/stores/researchStore';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { streamResearch } from '@/services/research';
-import { PROVIDER_OPTIONS, type SSEEvent, type ProviderType } from '@/types/research';
+import { PROVIDER_OPTIONS, type SSEEvent, type ProviderType, type ChatMessage } from '@/types/research';
 import { formatTimestamp } from '@/utils/helpers';
 
 export default function ResearchPage() {
@@ -16,6 +16,12 @@ export default function ResearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // 流式消息跟踪（类似原版 assistantStream）
+  const assistantStreamRef = useRef<{
+    message: ChatMessage | null;
+    content: string;
+  }>({ message: null, content: '' });
 
   const {
     messages,
@@ -56,6 +62,27 @@ export default function ResearchPage() {
     };
   }, [showAdvanced]);
 
+  // 滚动到底部
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // 更新流式消息（更新最后一条 AI 消息）
+  const updateAssistantStream = useCallback((chunk: string, meta?: string) => {
+    if (!chunk) return;
+    
+    // 直接更新最后一条消息的内容
+    updateLastMessage(chunk);
+    
+    scrollToBottom();
+  }, [updateLastMessage, scrollToBottom]);
+
+  // 完成流式消息（关闭 loading 状态）
+  const finalizeAssistantStream = useCallback((finalText?: string) => {
+    // 重置流式消息跟踪
+    assistantStreamRef.current = { message: null, content: '' };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
@@ -65,18 +92,20 @@ export default function ResearchPage() {
     setIsLoading(true);
     setStatus('active');
 
+    // 添加用户消息
     addMessage({
       role: 'user',
       content: userMessage,
     });
 
-    track('research_submit', { provider: settings.provider });
-
+    // 立即添加 AI 回复占位（显示 loading）
     addMessage({
       role: 'assistant',
       content: '',
       isStreaming: true,
     });
+
+    track('research_submit', { provider: settings.provider });
 
     const payload: Record<string, any> = {
       query: userMessage,
@@ -105,6 +134,7 @@ export default function ResearchPage() {
       });
       track('research_error', { provider: settings.provider, reason: String(error) });
     } finally {
+      finalizeAssistantStream();
       setIsLoading(false);
       setStatus('idle');
       abortControllerRef.current = null;
@@ -112,52 +142,103 @@ export default function ResearchPage() {
   };
 
   const handleStreamEvent = (event: SSEEvent) => {
-    switch (event.type) {
+    // 获取事件类型（优先从 data.event，否则从 event 行）
+    const type = event.event || event.type || 'message';
+    const data = event.data ?? event;
+    
+    switch (type) {
       case 'assistant_message':
-        updateLastMessage(event.content || '');
+        updateAssistantStream(extractText(data), data?.meta || data?.model || data?.provider);
         break;
       case 'final':
-        updateLastMessage(event.content || '');
+        // final 事件只更新内容，不关闭 loading
+        updateAssistantStream(extractText(data) || '', data?.meta);
         break;
       case 'error':
         addMessage({
           role: 'error',
-          content: event.message || '发生错误',
+          content: data?.message || data?.detail || '发生错误',
         });
         break;
       case 'search_start':
         addTimelineEntry({
           type: 'search_start',
-          title: '任务创建',
-          description: '已提交任务',
+          title: '搜索开始',
+          description: data?.query || 'Exa 搜索',
         });
         break;
       case 'search_results':
         addTimelineEntry({
           type: 'search_results',
           title: '搜索结果',
-          description: `找到 ${event.results?.length || 0} 条结果`,
+          description: `${(data?.results?.length ?? 0).toString()} 条候选`,
         });
         break;
       case 'open_url_start':
         addTimelineEntry({
           type: 'open_url_start',
-          title: '正在抓取',
-          description: event.url || '',
+          title: '抓取网页',
+          description: data?.url || '获取网页内容',
+        });
+        break;
+      case 'open_url_result':
+        addTimelineEntry({
+          type: 'open_url_result',
+          title: '抓取完成',
+          description: data?.title || data?.url || '网页已解析',
         });
         break;
       case 'tool_result':
         addTimelineEntry({
           type: 'tool_result',
-          title: event.tool_name || '工具输出',
-          description: JSON.stringify(event.result || {}).slice(0, 100),
+          title: data?.tool || '工具输出',
+          description: data?.output || data?.message || '完成',
         });
         break;
+      case 'log':
+        addTimelineEntry({
+          type: 'log',
+          title: data?.title || '日志',
+          description: extractText(data) || data?.message || '-',
+        });
+        break;
+      case 'close':
+      case 'done':
+        // 关闭最后一条消息的 loading 状态
+        finishStreaming();
+        finalizeAssistantStream();
+        setStatus('idle');
+        break;
+      default:
+        // 其他事件类型
+        if (type !== 'assistant_message' && type !== 'ping') {
+          addTimelineEntry({
+            type: type as any,
+            title: type.replace(/_/g, ' '),
+            description: extractText(data) || JSON.stringify(data),
+          });
+        }
     }
+  };
+
+  // 提取文本内容（类似原版 extractText）
+  const extractText = (data: any): string => {
+    if (!data) return '';
+    if (typeof data === 'string') return data;
+    if (typeof data.text === 'string') return data.text;
+    if (typeof data.content === 'string') return data.content;
+    if (Array.isArray(data.content)) {
+      return data.content
+        .map((part: any) => (typeof part === 'string' ? part : part.text || part.content || ''))
+        .join('');
+    }
+    if (typeof data.result === 'string') return data.result;
+    return '';
   };
 
   const handleStop = () => {
     abortControllerRef.current?.abort();
+    finalizeAssistantStream();
     setIsLoading(false);
     setStatus('idle');
     track('research_stop_stream');
@@ -166,6 +247,7 @@ export default function ResearchPage() {
   const handleClear = () => {
     clearMessages();
     clearTimeline();
+    assistantStreamRef.current = { message: null, content: '' };
     track('research_clear_chat');
   };
 
@@ -252,7 +334,7 @@ export default function ResearchPage() {
                       </div>
                     )}
 
-                    {messages.map((msg) => (
+                    {messages.map((msg, index) => (
                       <div key={msg.id} className="flex flex-col gap-1.5">
                         <div className="text-xs text-[#6b7280]">
                           {msg.role === 'user' ? '你' : msg.role === 'assistant' ? settings.provider : '系统提示'}
@@ -268,9 +350,15 @@ export default function ResearchPage() {
                         >
                           {msg.role === 'assistant' || msg.role === 'system' ? (
                             <div className="prose prose-sm max-w-none">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {msg.content || (msg.isStreaming ? '▋' : '')}
-                              </ReactMarkdown>
+                              {msg.content ? (
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              ) : null}
+                              {/* 只有最后一条正在流式的消息显示 loading */}
+                              {msg.isStreaming && index === messages.length - 1 && (
+                                <Loader2 size={16} className="inline-block text-primary animate-spin ml-1" />
+                              )}
                             </div>
                           ) : (
                             <p>{msg.content}</p>
@@ -287,8 +375,16 @@ export default function ResearchPage() {
                       <textarea
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (query.trim() && !isLoading) {
+                              handleSubmit(e);
+                            }
+                          }
+                        }}
                         placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
-                        className="input w-full mb-3 resize-none"
+                        className="input w-full mb-3 resize-none px-4 py-3 text-[15px] leading-relaxed"
                         style={{ minHeight: '100px', maxHeight: '120px' }}
                         rows={3}
                         disabled={isLoading}
@@ -302,7 +398,7 @@ export default function ResearchPage() {
                             onClick={handleStop}
                             className="btn bg-error text-white hover:bg-error/90"
                           >
-                            <Square size={18} className="mr-1" />
+                            <Octagon size={18} className="mr-1" fill="currentColor" />
                             停止
                           </button>
                         ) : (
