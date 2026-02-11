@@ -36,60 +36,24 @@ export const SCENARIOS: Scenario[] = [
 export const SCENARIO_TEMPLATES: Record<string, { title: string; content: string }[]> = {
   foreign_trade: [
     {
-      title: '初次接触',
-      content: `Dear [Name],
-
-I hope this email finds you well. My name is [Your Name] from [Company].
-
-We specialize in [product/service] and noticed your company is a key player in the [industry] market. I believe there might be a great opportunity for us to collaborate.
-
-Would you be open to a brief call next week to explore how we can support your business goals?
-
-Best regards,
-[Your Name]`,
-    },
-    {
-      title: '跟进邮件',
+      title: 'Subject: Quick intro — potential distributor for [Your Product] in [Region]',
       content: `Hi [Name],
 
-I wanted to follow up on my previous email regarding [topic].
+We help brands like [Peer Brand] grow in [Region]. I'd love to reach the right person for distribution or returns. If you're the best contact, could we set up a quick call this week? Otherwise, I'd appreciate a referral.
 
-I understand you're busy, but I believe this could be valuable for [specific benefit].
-
-Would you have 15 minutes for a quick chat this week?
-
-Best,
-[Your Name]`,
+— [Your Name], [Company], [Contact]`,
     },
   ],
   marketing: [
     {
-      title: '合作邀约',
-      content: `Hi [Name],
-
-我是 [Your Name]，来自 [Company]。
-
-我们一直在关注您在 [平台] 上的内容，非常欣赏您对 [领域] 的独到见解。我们有一款 [产品] 想邀请您体验，相信您的粉丝会感兴趣。
-
-方便聊聊合作的可能性吗？
-
-期待您的回复！
-[Your Name]`,
+      title: '投放合作邀约',
+      content: `你好 [称呼]，我们在 [品类/人群] 做投放，想与贵方沟通 [账号/MCN/平台商务] 的合作机会。本周可安排 15 分钟电话吗？若非您负责，烦请指引对接同事，感谢！`,
     },
   ],
   recruitment: [
     {
       title: '职位邀约',
-      content: `Hi [Name],
-
-我是 [Your Name]，[Company] 的 [职位]。
-
-我们在寻找一位 [目标职位]，看了您的履历，觉得您的 [具体经验] 非常匹配。想邀请您聊聊这个机会。
-
-您最近有在看新的机会吗？
-
-期待交流！
-[Your Name]`,
+      content: `你好 [候选人名]，我在 [公司] 负责 [职位名称] 的寻访，看到你在 [技能/项目] 方面的经历很契合。若愿意交换更多信息，可约 15 分钟初步沟通；若你更适合作为推荐人，也十分感谢指点。`,
     },
   ],
 };

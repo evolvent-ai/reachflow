@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle } from 'lucide-react';
 import type { ABVariants } from '@/types';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -8,6 +8,40 @@ import Toast from '@/components/ui/Toast';
 
 interface HeroSectionProps {
   variants: ABVariants;
+}
+
+// Logo 墙数据
+const LOGOS = [
+  { name: 'GitHub', src: '/logos/github_logo.svg' },
+  { name: 'LinkedIn', src: '/logos/linkedin_logo.svg' },
+  { name: 'Gmail', src: '/logos/gmail_logo.svg' },
+  { name: 'HubSpot', src: '/logos/hubspot_logo.svg' },
+  { name: 'X', src: '/logos/x_logo.svg' },
+];
+
+// 淡入动画 Hook
+function useFadeIn(delay: number = 0) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setIsVisible(true), delay);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [delay]);
+
+  return { ref, isVisible };
 }
 
 export default function HeroSection({ variants }: HeroSectionProps) {
@@ -22,8 +56,15 @@ export default function HeroSection({ variants }: HeroSectionProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toastVisible, setToastVisible] = useState(false);
 
-  const h1Text = variants.h1 === 'B' 
-    ? '首批可联对象，T+24 必达' 
+  // 各个区块的淡入动画
+  const titleAnim = useFadeIn(0);
+  const descAnim = useFadeIn(100);
+  const badgesAnim = useFadeIn(200);
+  const logoWallAnim = useFadeIn(300);
+  const formAnim = useFadeIn(200);
+
+  const h1Text = variants.h1 === 'B'
+    ? '首批可联对象，T+24 必达'
     : '找到对的人，24 小时内让他看到你';
 
   const handleInputChange = (field: string, value: string) => {
@@ -68,46 +109,101 @@ export default function HeroSection({ variants }: HeroSectionProps) {
   };
 
   return (
-    <section className="pt-32 pb-20 hero-bg">
+    <section className="pt-32 pb-20 hero-bg overflow-hidden">
       <div className="container">
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Content */}
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+            {/* AI 外联引擎标签 */}
+            <div
+              ref={titleAnim.ref}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 transition-all duration-700 ${
+                titleAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               AI 外联引擎
             </div>
-            
-            <h1 className="text-4xl md:text-5xl font-bold text-text leading-tight mb-6">
+
+            {/* 主标题 */}
+            <h1
+              ref={titleAnim.ref}
+              className={`text-4xl md:text-5xl font-bold text-text leading-tight mb-6 transition-all duration-700 delay-100 ${
+                titleAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
               联脉｜{h1Text}
             </h1>
-            
-            <p className="text-lg text-text-secondary mb-8 leading-relaxed">
+
+            {/* 描述 */}
+            <p
+              ref={descAnim.ref}
+              className={`text-lg text-text-secondary mb-8 leading-relaxed transition-all duration-700 delay-200 ${
+                descAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
               用 AI 精准识别企业关键联系人，补全多通道触达方式，并验证可达性。一键外联，拒绝盲打骚扰。
             </p>
 
-            <div className="flex flex-wrap gap-3 mb-8">
-              <span className="badge">
+            {/* 特性标签 */}
+            <div
+              ref={badgesAnim.ref}
+              className={`flex flex-wrap gap-3 mb-8 transition-all duration-700 delay-300 ${
+                badgesAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
+              <span className="badge hover:scale-105 transition-transform duration-300">
                 <CheckCircle size={16} className="text-secondary mr-2" />
                 覆盖场景：外贸获客｜影响者投放｜招聘寻源｜公关传播
               </span>
-              <span className="badge">
+              <span className="badge hover:scale-105 transition-transform duration-300">
                 <CheckCircle size={16} className="text-secondary mr-2" />
                 可达验证：邮箱投递/电话有效/渠道属性
               </span>
-              <span className="badge">
+              <span className="badge hover:scale-105 transition-transform duration-300">
                 <CheckCircle size={16} className="text-secondary mr-2" />
                 合规守护：仅使用公开数据｜拒联名录｜全链路审计
               </span>
             </div>
 
-            <p className="text-sm text-text-secondary">
-              承诺：T+24 小时返回 3–5 位可联对象（含可达评分与触达路径）
-            </p>
+            {/* 承诺 + Logo 墙 */}
+            <div
+              ref={logoWallAnim.ref}
+              className={`transition-all duration-700 delay-400 ${
+                logoWallAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
+              <p className="text-sm text-text-secondary mb-4">
+                承诺：T+24 小时返回 3–5 位可联对象（含可达评分与触达路径）
+              </p>
+
+              {/* Logo 墙 */}
+              <div className="flex items-center gap-4 flex-wrap">
+                {LOGOS.map((logo, index) => (
+                  <div
+                    key={logo.name}
+                    className="w-12 h-12 rounded-xl bg-white border border-[#e5e7eb] flex items-center justify-center p-2.5 hover:shadow-lg hover:scale-110 hover:border-primary/30 transition-all duration-300 cursor-pointer group"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                    title={logo.name}
+                  >
+                    <img
+                      src={logo.src}
+                      alt={logo.name}
+                      className="w-full h-full object-contain opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right Form */}
-          <div className="card shadow-lg">
+          <div
+            ref={formAnim.ref}
+            className={`card shadow-lg hover:shadow-xl transition-all duration-700 delay-200 ${
+              formAnim.isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+            }`}
+          >
             <h3 className="text-xl font-semibold mb-6">立即获取首批联系人</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -145,6 +241,13 @@ export default function HeroSection({ variants }: HeroSectionProps) {
                   value={formData.scenario}
                   onChange={(e) => handleInputChange('scenario', e.target.value)}
                   className={`input w-full ${errors.scenario ? 'border-error' : ''}`}
+                  style={{
+                    appearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    paddingRight: '36px',
+                  }}
                 >
                   <option value="">请选择使用场景</option>
                   {SCENARIO_OPTIONS.map((opt) => (
@@ -173,6 +276,13 @@ export default function HeroSection({ variants }: HeroSectionProps) {
                     value={formData.volume}
                     onChange={(e) => handleInputChange('volume', e.target.value)}
                     className="input w-full"
+                    style={{
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                      paddingRight: '36px',
+                    }}
                   >
                     <option value="">预估月外联量</option>
                     {VOLUME_OPTIONS.map((opt) => (
@@ -182,10 +292,13 @@ export default function HeroSection({ variants }: HeroSectionProps) {
                 </>
               )}
 
-              <button type="submit" className="btn btn-primary w-full">
+              <button
+                type="submit"
+                className="btn btn-primary w-full hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              >
                 提交
               </button>
-              
+
               <p className="text-text-secondary text-sm text-center">
                 提交后我们将在 24 小时内邮件或微信联系你。
               </p>

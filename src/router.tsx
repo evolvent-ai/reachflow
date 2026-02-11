@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import ResearchPage from './pages/ResearchPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 export const router = createBrowserRouter([
@@ -30,7 +31,20 @@ export const router = createBrowserRouter([
     element: <SignInPage />,
   },
   {
+    path: '/sign-in/*',
+    element: <SignInPage />,
+  },
+  {
     path: '/sign-up',
     element: <SignUpPage />,
+  },
+  {
+    path: '/sign-up/*',
+    element: <SignUpPage />,
+  },
+  // 404 页面 - 必须放在最后
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);

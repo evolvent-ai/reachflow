@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Send, Square, Trash2, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Send, Square, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useResearchStore } from '@/stores/researchStore';
@@ -9,28 +9,14 @@ import { streamResearch } from '@/services/research';
 import { PROVIDER_OPTIONS, type SSEEvent, type ProviderType } from '@/types/research';
 import { formatTimestamp } from '@/utils/helpers';
 
-// 动态导入 Clerk
-let useUser: (() => { user: { fullName: string | null; primaryEmailAddress: { emailAddress: string } | null } | null }) | null = null;
-let clerkLoaded = false;
-
-try {
-  const clerk = require('@clerk/clerk-react');
-  useUser = clerk.useUser;
-  clerkLoaded = true;
-} catch {
-  // Clerk 未加载
-}
-
 export default function ResearchPage() {
   const { track } = useAnalytics();
   const [query, setQuery] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
-  // 获取用户信息（如果 Clerk 已加载）
-  const user = clerkLoaded && useUser ? useUser().user : null;
-  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const {
     messages,
     addMessage,
@@ -49,6 +35,27 @@ export default function ResearchPage() {
     track('page_view', { page: 'research' });
   }, [track]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // ESC 键关闭高级设置弹窗
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showAdvanced) {
+        setShowAdvanced(false);
+      }
+    };
+
+    if (showAdvanced) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showAdvanced]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
@@ -58,7 +65,6 @@ export default function ResearchPage() {
     setIsLoading(true);
     setStatus('active');
 
-    // Add user message
     addMessage({
       role: 'user',
       content: userMessage,
@@ -66,14 +72,12 @@ export default function ResearchPage() {
 
     track('research_submit', { provider: settings.provider });
 
-    // Create assistant message placeholder
     addMessage({
       role: 'assistant',
       content: '',
       isStreaming: true,
     });
 
-    // Build payload
     const payload: Record<string, any> = {
       query: userMessage,
       provider: settings.provider,
@@ -89,7 +93,7 @@ export default function ResearchPage() {
 
     try {
       abortControllerRef.current = new AbortController();
-      
+
       for await (const event of streamResearch(payload as any, abortControllerRef.current.signal)) {
         handleStreamEvent(event);
       }
@@ -124,8 +128,8 @@ export default function ResearchPage() {
       case 'search_start':
         addTimelineEntry({
           type: 'search_start',
-          title: '开始搜索',
-          description: `查询: ${event.query || ''}`,
+          title: '任务创建',
+          description: '已提交任务',
         });
         break;
       case 'search_results':
@@ -145,8 +149,8 @@ export default function ResearchPage() {
       case 'tool_result':
         addTimelineEntry({
           type: 'tool_result',
-          title: '工具输出',
-          description: event.tool_name || '',
+          title: event.tool_name || '工具输出',
+          description: JSON.stringify(event.result || {}).slice(0, 100),
         });
         break;
     }
@@ -166,240 +170,194 @@ export default function ResearchPage() {
   };
 
   return (
-    <div data-page="research" className="page min-h-screen">
+    <div data-page="research" className="min-h-screen bg-[#f8fafc]">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/92 border-b border-[rgba(229,231,235,0.6)] backdrop-blur-xl">
         <div className="container">
-          <div className="flex items-center justify-between h-16">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-text hover:text-primary transition-colors"
-              onClick={() => track('research_back_home')}
-            >
-              <ArrowLeft size={20} />
-              <span>返回首页</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white text-sm font-bold">联</span>
+          <div className="flex items-center justify-between h-[72px]">
+            <Link to="/" className="flex items-center gap-3" onClick={() => track('logo_click')}>
+              <img src="/icon.png" alt="联脉" className="w-10 h-10 rounded-xl" />
+              <div className="flex flex-col leading-tight">
+                <span className="text-xl font-bold text-[#111827]">联脉</span>
+                <span className="text-xs text-[#6b7280]">ReachFlow</span>
               </div>
-              <span className="font-semibold">AI 背调实验台</span>
-              <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                内测
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {clerkLoaded && user && (
-                <div className="flex items-center gap-2 text-sm text-text-secondary">
-                  <User size={16} />
-                  <span className="hidden sm:inline">{user.fullName || user.primaryEmailAddress?.emailAddress}</span>
-                </div>
-              )}
-            </div>
+            </Link>
+            <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
+              返回首页
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pt-16 pb-20">
-        <div className="container">
-          <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {/* Chat Panel */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-[32px] shadow-chat overflow-hidden">
-                {/* Messages */}
-                <div className="h-[500px] overflow-y-auto p-6 space-y-4">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${
-                        msg.role === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-[18px] p-4 ${
-                          msg.role === 'user'
-                            ? 'bg-primary text-white'
-                            : msg.role === 'error'
-                            ? 'bg-error/10 text-error'
-                            : 'bg-background text-text'
-                        }`}
-                      >
-                        {msg.role === 'system' && (
-                          <div className="text-xs text-text-secondary mb-1">联脉 Agent</div>
-                        )}
-                        {msg.role === 'assistant' && (
-                          <div className="text-xs text-text-secondary mb-1">联脉 Agent</div>
-                        )}
-                        {msg.role === 'user' && (
-                          <div className="text-xs text-white/70 mb-1">你</div>
-                        )}
-                        {msg.role === 'assistant' || msg.role === 'system' ? (
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {msg.content || (msg.isStreaming ? '▋' : '')}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          <p>{msg.content}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+      <main className="pt-[72px] pb-20">
+        <div className="container py-12">
+          <div className="max-w-[1200px] mx-auto">
+            {/* Chat Card */}
+            <div className="bg-white/96 rounded-[32px] p-8 shadow-[0_30px_80px_rgba(15,23,42,0.15)] border border-[rgba(229,231,235,0.9)]">
+              {/* Chat Header */}
+              <header className="flex justify-between gap-6 flex-wrap items-end mb-6">
+                <div>
+                  <p className="text-sm text-primary font-medium mb-1.5 tracking-wide">AI 背调实验台 · 内测</p>
+                  <h1 className="text-[clamp(28px,4vw,40px)] font-bold text-[#111827] leading-tight">
+                    一个窗口，完成对外贸买家的 AI 背调
+                  </h1>
                 </div>
-
-                {/* Input */}
-                <div className="p-4 border-t border-border">
-                  <form onSubmit={handleSubmit} className="flex gap-3">
-                    <input
-                      type="text"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="输入你想了解的公司、人物或话题..."
-                      className="flex-1 input"
-                      disabled={isLoading}
-                    />
-                    {isLoading ? (
-                      <button
-                        type="button"
-                        onClick={handleStop}
-                        className="btn bg-error text-white hover:bg-error/90"
-                      >
-                        <Square size={18} className="mr-1" />
-                        停止
-                      </button>
-                    ) : (
-                      <button
-                        type="submit"
-                        disabled={!query.trim()}
-                        className="btn btn-primary"
-                      >
-                        <Send size={18} className="mr-1" />
-                        发送
-                      </button>
-                    )}
-                  </form>
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-4">
-              {/* Settings */}
-              <div className="card">
-                <h3 className="font-semibold mb-4">设置</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-text-secondary mb-2">
-                      Provider
-                    </label>
+                <div className="flex items-end gap-4">
+                  <label className="flex flex-col text-[13px] font-semibold text-[#6b7280]">
+                    Provider
                     <select
                       value={settings.provider}
                       onChange={(e) => updateSettings({ provider: e.target.value as ProviderType })}
-                      className="input w-full"
+                      className="mt-1.5 h-[42px] px-3 text-sm bg-white border border-[#e5e7eb] rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                      style={{
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 10px center',
+                        paddingRight: '32px',
+                        minWidth: '120px'
+                      }}
                     >
                       {PROVIDER_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                  </div>
-
+                  </label>
                   <button
                     onClick={() => {
-                      setShowAdvanced(!showAdvanced);
+                      setShowAdvanced(true);
                       track('research_toggle_advanced');
                     }}
-                    className="flex items-center text-sm text-text-secondary hover:text-text"
+                    className="h-[42px] border border-dashed border-[rgba(47,111,237,0.4)] bg-[rgba(47,111,237,0.08)] text-primary font-semibold rounded-xl px-4 text-sm hover:bg-[rgba(47,111,237,0.12)] transition-colors flex items-center"
                   >
                     高级设置
-                    {showAdvanced ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
                   </button>
-
-                  {showAdvanced && (
-                    <div className="space-y-3 pt-2">
-                      <input
-                        type="password"
-                        placeholder={`${PROVIDER_OPTIONS.find(o => o.value === settings.provider)?.apiKeyLabel || 'API Key'}`}
-                        value={settings.apiKey}
-                        onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                        className="input w-full"
-                        autoComplete="off"
-                      />
-                      <input
-                        type="text"
-                        placeholder="模型 (可选)"
-                        value={settings.model}
-                        onChange={(e) => updateSettings({ model: e.target.value })}
-                        className="input w-full"
-                      />
-                      <input
-                        type="text"
-                        placeholder="OpenAI Base URL (可选)"
-                        value={settings.baseUrl}
-                        onChange={(e) => updateSettings({ baseUrl: e.target.value })}
-                        className="input w-full"
-                      />
-                      <input
-                        type="password"
-                        placeholder="EXA API Key (可选)"
-                        value={settings.exaKey}
-                        onChange={(e) => updateSettings({ exaKey: e.target.value })}
-                        className="input w-full"
-                        autoComplete="off"
-                      />
-                    </div>
-                  )}
                 </div>
-              </div>
+              </header>
 
-              {/* Timeline */}
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold">研究日志</h3>
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    status === 'streaming' ? 'bg-secondary/10 text-secondary' :
-                    status === 'error' ? 'bg-error/10 text-error' :
-                    status === 'active' ? 'bg-warning/10 text-warning' :
-                    'bg-text-secondary/10 text-text-secondary'
-                  }`}>
-                    {status === 'idle' ? '待机' : status === 'active' ? '活跃' : status === 'streaming' ? '流式' : '错误'}
-                  </span>
-                </div>
-                
-                <div className="text-xs text-text-secondary mb-3">
-                  实时显示搜索、抓取与工具状态
-                </div>
-
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                  {timeline.length === 0 ? (
-                    <p className="text-text-secondary text-sm text-center py-4">暂无事件</p>
-                  ) : (
-                    timeline.map((entry) => (
-                      <div key={entry.id} className="text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="text-text-secondary text-xs">
-                            {formatTimestamp(entry.timestamp / 1000)}
-                          </span>
-                          <span className="font-medium">{entry.title}</span>
+              {/* Chat Layout */}
+              <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(280px,0.6fr)] gap-6" style={{ height: 'calc(100vh - 280px)', minHeight: '400px' }}>
+                {/* Chat Main */}
+                <div className="flex flex-col min-h-0">
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-2 min-h-0">
+                    {/* System Message */}
+                    {messages.length === 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <div className="text-xs text-[#6b7280]">系统提示</div>
+                        <div className="bg-[rgba(248,250,252,0.95)] border border-[rgba(229,231,235,0.9)] rounded-[18px] p-4 text-[#111827] leading-relaxed">
+                          <p>输入客户背景/公司信息/所需确认的问题, 我会返回可执行的 Markdown 报告。</p>
                         </div>
-                        {entry.description && (
-                          <p className="text-text-secondary text-xs mt-0.5 truncate">
-                            {entry.description}
-                          </p>
-                        )}
                       </div>
-                    ))
-                  )}
+                    )}
+
+                    {messages.map((msg) => (
+                      <div key={msg.id} className="flex flex-col gap-1.5">
+                        <div className="text-xs text-[#6b7280]">
+                          {msg.role === 'user' ? '你' : msg.role === 'assistant' ? settings.provider : '系统提示'}
+                        </div>
+                        <div
+                          className={`rounded-[18px] p-4 leading-relaxed ${
+                            msg.role === 'user'
+                              ? 'bg-[rgba(47,111,237,0.1)] border border-[rgba(47,111,237,0.25)]'
+                              : msg.role === 'error'
+                              ? 'bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.4)] text-error'
+                              : 'bg-white border border-[rgba(229,231,235,0.9)]'
+                          }`}
+                        >
+                          {msg.role === 'assistant' || msg.role === 'system' ? (
+                            <div className="prose prose-sm max-w-none">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content || (msg.isStreaming ? '▋' : '')}
+                              </ReactMarkdown>
+                            </div>
+                          ) : (
+                            <p>{msg.content}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="pt-4 border-t border-[#e5e7eb] flex-shrink-0">
+                    <form onSubmit={handleSubmit}>
+                      <textarea
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
+                        className="input w-full mb-3 resize-none"
+                        style={{ minHeight: '100px', maxHeight: '120px' }}
+                        rows={3}
+                        disabled={isLoading}
+                      />
+
+                      {/* Buttons */}
+                      <div className="flex gap-3">
+                        {isLoading ? (
+                          <button
+                            type="button"
+                            onClick={handleStop}
+                            className="btn bg-error text-white hover:bg-error/90"
+                          >
+                            <Square size={18} className="mr-1" />
+                            停止
+                          </button>
+                        ) : (
+                          <button type="submit" disabled={!query.trim()} className="btn btn-primary">
+                            <Send size={18} className="mr-1" />
+                            发送
+                          </button>
+                        )}
+                        <button type="button" onClick={handleClear} className="btn btn-secondary">
+                          <Trash2 size={18} className="mr-1" />
+                          清空记录
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
 
-                <button
-                  onClick={handleClear}
-                  className="btn btn-outline w-full mt-4 text-sm"
-                >
-                  <Trash2 size={16} className="mr-1" />
-                  清空对话
-                </button>
+                {/* Sidebar - Timeline */}
+                <aside className="pl-6 border-l border-[#e5e7eb] flex flex-col min-h-0">
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                    <div>
+                      <h2 className="font-semibold text-[#111827]">研究日志</h2>
+                      <p className="text-xs text-[#6b7280] mt-1">实时显示搜索、抓取与工具状态</p>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        status === 'streaming'
+                          ? 'bg-secondary/10 text-secondary'
+                          : status === 'error'
+                          ? 'bg-error/10 text-error'
+                          : status === 'active'
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-[#6b7280]/10 text-[#6b7280]'
+                      }`}
+                    >
+                      {status === 'idle' ? '待机' : status === 'active' ? '活跃' : status === 'streaming' ? '流式' : '错误'}
+                    </span>
+                  </div>
+
+                  <ol className="flex-1 overflow-y-auto space-y-3 min-h-0">
+                    {timeline.length === 0 ? (
+                      <li className="text-[#6b7280] text-sm text-center py-8">暂无事件</li>
+                    ) : (
+                      timeline.map((entry) => (
+                        <li key={entry.id} className="text-sm bg-[rgba(248,250,252,0.95)] border border-[rgba(229,231,235,0.9)] rounded-xl p-3">
+                          <div className="font-medium text-primary mb-1">{entry.title}</div>
+                          <div className="text-[#6b7280] text-xs mb-1">{formatTimestamp(entry.timestamp / 1000)}</div>
+                          {entry.description && (
+                            <p className="text-[#111827] text-xs break-all">{entry.description}</p>
+                          )}
+                        </li>
+                      ))
+                    )}
+                  </ol>
+                </aside>
               </div>
             </div>
           </div>
@@ -407,16 +365,88 @@ export default function ResearchPage() {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-border py-3">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e7eb] py-3">
         <div className="container">
-          <div className="flex items-center justify-between text-sm text-text-secondary">
-            <p>© {new Date().getFullYear()} 联脉科技 · 内测版本</p>
-            <Link to="/" className="hover:text-primary transition-colors">
-              返回首页
-            </Link>
-          </div>
+          <p className="text-center text-[#6b7280] text-sm">© {new Date().getFullYear()} 联脉 ReachFlow · 内测版本</p>
         </div>
       </footer>
+
+      {/* Advanced Settings Modal */}
+      {showAdvanced && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-[24px] p-6 w-full max-w-[480px] shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-[#111827]">高级设置</h3>
+              <button
+                onClick={() => setShowAdvanced(false)}
+                className="p-2 hover:bg-[#f3f4f6] rounded-lg transition-colors"
+              >
+                <X size={20} className="text-[#6b7280]" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-2">Provider API Key（可选）</label>
+                <input
+                  type="password"
+                  placeholder="留空使用后端默认配置"
+                  value={settings.apiKey}
+                  onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                  className="input w-full"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-2">模型名称（可选）</label>
+                <input
+                  type="text"
+                  placeholder="例如：gpt-4o-mini"
+                  value={settings.model}
+                  onChange={(e) => updateSettings({ model: e.target.value })}
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-2">OpenAI Base URL（可选）</label>
+                <input
+                  type="url"
+                  placeholder="如需自建代理"
+                  value={settings.baseUrl}
+                  onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#374151] mb-2">EXA API Key（可选）</label>
+                <input
+                  type="password"
+                  placeholder="覆盖后端默认 Key"
+                  value={settings.exaKey}
+                  onChange={(e) => updateSettings({ exaKey: e.target.value })}
+                  className="input w-full"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[#e5e7eb]">
+              <button
+                onClick={() => setShowAdvanced(false)}
+                className="btn btn-secondary"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => setShowAdvanced(false)}
+                className="btn btn-primary"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,9 +9,11 @@ export default function SignInPage() {
         <div className="container">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold">联</span>
-              </div>
+              <img 
+                src="/icon.png" 
+                alt="联脉" 
+                className="w-10 h-10 rounded-lg"
+              />
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-text leading-tight">联脉</span>
                 <span className="text-xs text-text-secondary leading-tight">ReachFlow</span>

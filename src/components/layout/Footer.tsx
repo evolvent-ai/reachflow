@@ -11,9 +11,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-white font-bold">联</span>
-              </div>
+              <img 
+                src="/icon.png" 
+                alt="联脉" 
+                className="w-10 h-10 rounded-lg"
+              />
               <span className="text-lg font-bold">{COMPANY_INFO.name}</span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed">
