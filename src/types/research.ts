@@ -15,7 +15,12 @@ export type EventType =
   | 'error'
   | 'ping'
   | 'done'
-  | 'close';
+  | 'close'
+  | 'task_created'
+  | 'log'
+  | 'user_message'
+  | 'llm_request'
+  | 'llm_response';
 
 export interface SSEEvent {
   type?: EventType;

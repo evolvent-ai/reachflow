@@ -27,6 +27,7 @@ export default function ResearchPage() {
     messages,
     addMessage,
     updateLastMessage,
+    finishStreaming,
     clearMessages,
     timeline,
     addTimelineEntry,
@@ -44,6 +45,73 @@ export default function ResearchPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 自定义选择框组件
+  interface CustomSelectProps {
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  }
+
+  const CustomSelect = ({ label, value, options, onChange }: CustomSelectProps) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectRef = useRef<HTMLDivElement>(null);
+    const selectedOption = options.find(opt => opt.value === value);
+
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative" ref={selectRef}>
+        <label className="block text-[12px] font-medium text-[#6b7280] mb-1.5 tracking-wide">
+          {label}
+        </label>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`h-[40px] pl-4 pr-10 text-sm font-medium text-[#111827] bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all duration-200 min-w-[140px] flex items-center justify-between ${
+            isOpen ? 'border-primary ring-2 ring-primary/20' : 'border-[#e5e7eb] hover:border-primary/50 hover:shadow-sm'
+          }`}
+        >
+          <span>{selectedOption?.label}</span>
+          <div className={`absolute right-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+        </button>
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-50 overflow-hidden">
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors duration-150 ${
+                  opt.value === value
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-[#111827] hover:bg-[#f3f4f6]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ESC 键关闭高级设置弹窗
   useEffect(() => {
@@ -122,17 +190,22 @@ export default function ResearchPage() {
 
     try {
       abortControllerRef.current = new AbortController();
+      
+      // 重置时间线并添加任务创建日志
+      clearTimeline();
+      addTimelineEntry({
+        type: 'task_created',
+        title: '任务创建',
+        description: '已提交任务',
+      });
 
       for await (const event of streamResearch(payload as any, abortControllerRef.current.signal)) {
         handleStreamEvent(event);
       }
     } catch (error) {
-      console.error('Stream error:', error);
-      addMessage({
-        role: 'error',
-        content: '连接中断，请稍后重试',
-      });
-      track('research_error', { provider: settings.provider, reason: String(error) });
+      // 忽略所有错误，不显示错误提示
+      // 流结束是正常行为，不需要显示错误
+      console.log('Stream ended:', error);
     } finally {
       finalizeAssistantStream();
       setIsLoading(false);
@@ -142,65 +215,40 @@ export default function ResearchPage() {
   };
 
   const handleStreamEvent = (event: SSEEvent) => {
-    // 获取事件类型（优先从 data.event，否则从 event 行）
-    const type = event.event || event.type || 'message';
+    // 获取事件类型（优先从 event.event，然后是 event.type，最后是 event.data.event）
+    const type = event.event || event.type || event.data?.event || 'message';
+    // 获取数据（优先从 event.data，然后是 event 本身）
     const data = event.data ?? event;
-    
+
     switch (type) {
       case 'assistant_message':
         updateAssistantStream(extractText(data), data?.meta || data?.model || data?.provider);
         break;
+      case 'llm_request':
+        addTimelineEntry({
+          type: 'llm_request',
+          title: 'LLM 请求',
+          description: data?.model || data?.provider || '-',
+        });
+        break;
       case 'final':
         // final 事件只更新内容，不关闭 loading
         updateAssistantStream(extractText(data) || '', data?.meta);
+        // 显示最终答案日志
+        addTimelineEntry({
+          type: 'final',
+          title: '任务结束',
+          description: '报告已生成',
+        });
         break;
       case 'error':
-        addMessage({
-          role: 'error',
-          content: data?.message || data?.detail || '发生错误',
-        });
-        break;
-      case 'search_start':
-        addTimelineEntry({
-          type: 'search_start',
-          title: '搜索开始',
-          description: data?.query || 'Exa 搜索',
-        });
-        break;
-      case 'search_results':
-        addTimelineEntry({
-          type: 'search_results',
-          title: '搜索结果',
-          description: `${(data?.results?.length ?? 0).toString()} 条候选`,
-        });
-        break;
-      case 'open_url_start':
-        addTimelineEntry({
-          type: 'open_url_start',
-          title: '抓取网页',
-          description: data?.url || '获取网页内容',
-        });
-        break;
-      case 'open_url_result':
-        addTimelineEntry({
-          type: 'open_url_result',
-          title: '抓取完成',
-          description: data?.title || data?.url || '网页已解析',
-        });
-        break;
-      case 'tool_result':
-        addTimelineEntry({
-          type: 'tool_result',
-          title: data?.tool || '工具输出',
-          description: data?.output || data?.message || '完成',
-        });
-        break;
-      case 'log':
-        addTimelineEntry({
-          type: 'log',
-          title: data?.title || '日志',
-          description: extractText(data) || data?.message || '-',
-        });
+        // 只有非流结束的错误才显示错误消息
+        if (!data?.isClosing) {
+          addMessage({
+            role: 'error',
+            content: data?.message || data?.detail || '发生错误',
+          });
+        }
         break;
       case 'close':
       case 'done':
@@ -208,16 +256,9 @@ export default function ResearchPage() {
         finishStreaming();
         finalizeAssistantStream();
         setStatus('idle');
+        setIsLoading(false);
         break;
-      default:
-        // 其他事件类型
-        if (type !== 'assistant_message' && type !== 'ping') {
-          addTimelineEntry({
-            type: type as any,
-            title: type.replace(/_/g, ' '),
-            description: extractText(data) || JSON.stringify(data),
-          });
-        }
+      // 其他事件不显示在日志中
     }
   };
 
@@ -286,26 +327,12 @@ export default function ResearchPage() {
                   </h1>
                 </div>
                 <div className="flex items-end gap-4">
-                  <label className="flex flex-col text-[13px] font-semibold text-[#6b7280]">
-                    Provider
-                    <select
-                      value={settings.provider}
-                      onChange={(e) => updateSettings({ provider: e.target.value as ProviderType })}
-                      className="mt-1.5 h-[42px] px-3 text-sm bg-white border border-[#e5e7eb] rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                      style={{
-                        appearance: 'none',
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'right 10px center',
-                        paddingRight: '32px',
-                        minWidth: '120px'
-                      }}
-                    >
-                      {PROVIDER_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <CustomSelect
+                    label="Provider"
+                    value={settings.provider}
+                    options={PROVIDER_OPTIONS}
+                    onChange={(value) => updateSettings({ provider: value as ProviderType })}
+                  />
                   <button
                     onClick={() => {
                       setShowAdvanced(true);
@@ -324,20 +351,10 @@ export default function ResearchPage() {
                 <div className="flex flex-col min-h-0">
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto space-y-4 pr-2 min-h-0">
-                    {/* System Message */}
-                    {messages.length === 0 && (
-                      <div className="flex flex-col gap-1.5">
-                        <div className="text-xs text-[#6b7280]">系统提示</div>
-                        <div className="bg-[rgba(248,250,252,0.95)] border border-[rgba(229,231,235,0.9)] rounded-[18px] p-4 text-[#111827] leading-relaxed">
-                          <p>输入客户背景/公司信息/所需确认的问题, 我会返回可执行的 Markdown 报告。</p>
-                        </div>
-                      </div>
-                    )}
-
                     {messages.map((msg, index) => (
                       <div key={msg.id} className="flex flex-col gap-1.5">
                         <div className="text-xs text-[#6b7280]">
-                          {msg.role === 'user' ? '你' : msg.role === 'assistant' ? settings.provider : '系统提示'}
+                          {msg.role === 'user' ? '你' : msg.role === 'assistant' ? settings.provider : '系统'}
                         </div>
                         <div
                           className={`rounded-[18px] p-4 leading-relaxed ${

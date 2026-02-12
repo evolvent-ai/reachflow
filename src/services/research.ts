@@ -93,6 +93,11 @@ export async function* streamResearch(payload: ResearchPayload, signal?: AbortSi
       }
     }
   } finally {
-    reader.releaseLock();
+    // 安全地释放 reader
+    try {
+      reader.releaseLock();
+    } catch (e) {
+      // 忽略释放锁时的错误
+    }
   }
 }
