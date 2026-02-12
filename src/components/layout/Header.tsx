@@ -43,9 +43,11 @@ export default function Header() {
         <div className="flex items-center justify-between h-[72px]">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3" onClick={() => track('logo_click')}>
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white text-lg font-bold">联</span>
-            </div>
+            <img 
+              src="/icon.png" 
+              alt="联脉" 
+              className="w-10 h-10 rounded-lg"
+            />
             <div className="flex flex-col">
               <span className="text-xl font-bold text-text leading-tight">联脉</span>
               <span className="text-xs text-text-secondary leading-tight">ReachFlow</span>
@@ -92,6 +94,13 @@ export default function Header() {
               >
                 AI 背调
               </Link>
+              <a
+                href="#pricing"
+                className="btn btn-primary"
+                onClick={() => track('cta_click_hero')}
+              >
+                获取首批联系人
+              </a>
               <UserButton 
                 appearance={{
                   elements: {
@@ -160,6 +169,16 @@ export default function Header() {
                 >
                   AI 背调
                 </Link>
+                <a
+                  href="#pricing"
+                  className="btn btn-primary w-full justify-center"
+                  onClick={() => {
+                    track('cta_click_hero');
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  获取首批联系人
+                </a>
                 <div className="flex justify-center py-2">
                   <UserButton />
                 </div>

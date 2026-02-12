@@ -14,11 +14,19 @@ export type EventType =
   | 'final'
   | 'error'
   | 'ping'
-  | 'done';
+  | 'done'
+  | 'close'
+  | 'task_created'
+  | 'log'
+  | 'user_message'
+  | 'llm_request'
+  | 'llm_response';
 
 export interface SSEEvent {
-  type: EventType;
+  type?: EventType;
+  event?: string;
   timestamp?: number;
+  data?: any;
   [key: string]: any;
 }
 

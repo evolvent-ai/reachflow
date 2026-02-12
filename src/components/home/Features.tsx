@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Target, Share2, BarChart3, FileCheck, Shield, Plug, Info } from 'lucide-react';
 import { FEATURES } from '@/constants/features';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
 import Drawer from '@/components/ui/Drawer';
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -17,6 +18,9 @@ export default function Features() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { track } = useAnalytics();
 
+  const headerAnim = useScrollAnimation();
+  const cardsAnim = useStaggeredAnimation(FEATURES.length, 100);
+
   const openComplianceDrawer = () => {
     setIsDrawerOpen(true);
     track('compliance_view');
@@ -25,23 +29,37 @@ export default function Features() {
   return (
     <section className="section bg-background">
       <div className="container">
-        <div className="text-center mb-12">
+        <div 
+          ref={headerAnim.ref}
+          className={`text-center mb-12 transition-all duration-700 ${
+            headerAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
           <h2 className="text-3xl font-bold mb-4">关键能力，兼顾可解释与合规</h2>
           <button
             onClick={openComplianceDrawer}
-            className="inline-flex items-center gap-2 mt-4 text-primary hover:text-primary-dark text-sm font-medium"
+            className="inline-flex items-center gap-2 mt-4 text-primary hover:text-primary-dark text-sm font-medium hover:scale-105 transition-transform duration-300"
           >
             <Info size={16} />
             了解合规细则
           </button>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURES.map((feature) => {
+        <div 
+          ref={cardsAnim.ref}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {FEATURES.map((feature, index) => {
             const Icon = iconMap[feature.icon];
             return (
-              <div key={feature.title} className="card hover:shadow-lg transition-shadow">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+              <div 
+                key={feature.title} 
+                className={`card hover:shadow-lg hover:-translate-y-1 transition-all duration-500 ${
+                  cardsAnim.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
+                style={{ transitionDelay: `${cardsAnim.getDelay(index)}ms` }}
+              >
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 hover:scale-110 transition-transform duration-300">
                   {Icon && <Icon size={24} className="text-primary" />}
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>

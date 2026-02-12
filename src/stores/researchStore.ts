@@ -12,6 +12,7 @@ interface ResearchState {
   messages: ChatMessage[];
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   updateLastMessage: (content: string) => void;
+  finishStreaming: () => void;
   clearMessages: () => void;
   
   timeline: TimelineEntry[];
@@ -30,17 +31,10 @@ interface ResearchState {
 
 const STORAGE_KEY = 'reachflow_research_chat_history';
 
-const SYSTEM_MESSAGE: ChatMessage = {
-  id: 'system',
-  role: 'system',
-  content: '你好！我是联脉 AI 背调助手。输入你想了解的公司、人物或话题，我将为你进行深度研究。',
-  timestamp: Date.now(),
-};
-
 export const useResearchStore = create<ResearchState>()(
   persist(
     (set) => ({
-      messages: [SYSTEM_MESSAGE],
+      messages: [],
       addMessage: (message) => set((state) => ({
         messages: [
           ...state.messages,
@@ -55,11 +49,20 @@ export const useResearchStore = create<ResearchState>()(
         const messages = [...state.messages];
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === 'assistant') {
-          lastMessage.content = content;
+          lastMessage.content += content;
         }
         return { messages };
       }),
-      clearMessages: () => set({ messages: [SYSTEM_MESSAGE] }),
+      finishStreaming: () => set((state) => {
+        const messages = state.messages.map((msg, index) => {
+          if (index === state.messages.length - 1 && msg.role === 'assistant') {
+            return { ...msg, isStreaming: false };
+          }
+          return msg;
+        });
+        return { messages };
+      }),
+      clearMessages: () => set({ messages: [] }),
       
       timeline: [],
       addTimelineEntry: (entry) => set((state) => ({
@@ -98,6 +101,16 @@ export const useResearchStore = create<ResearchState>()(
         messages: state.messages,
         settings: state.settings,
       }),
+      onRehydrateStorage: () => (state) => {
+        // 恢复时清除所有消息的 loading 状态
+        if (state?.messages) {
+          state.messages.forEach((msg: ChatMessage) => {
+            if (msg.isStreaming) {
+              msg.isStreaming = false;
+            }
+          });
+        }
+      },
     }
   )
 );

@@ -16,7 +16,7 @@ export default defineConfig({
       '/api': {
         target: 'http://47.110.77.202',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        // 保持 /api 前缀，因为后端路径也是 /api/xxx
       },
     },
   },
