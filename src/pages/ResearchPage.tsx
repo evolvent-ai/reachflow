@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Square, Trash2, X, Loader2, Octagon } from 'lucide-react';
+import { Send, Trash2, X, Loader2, Octagon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useResearchStore } from '@/stores/researchStore';
@@ -136,17 +136,17 @@ export default function ResearchPage() {
   }, []);
 
   // 更新流式消息（更新最后一条 AI 消息）
-  const updateAssistantStream = useCallback((chunk: string, meta?: string) => {
+  const updateAssistantStream = useCallback((chunk: string, _meta?: string) => {
     if (!chunk) return;
-    
+
     // 直接更新最后一条消息的内容
     updateLastMessage(chunk);
-    
+
     scrollToBottom();
   }, [updateLastMessage, scrollToBottom]);
 
   // 完成流式消息（关闭 loading 状态）
-  const finalizeAssistantStream = useCallback((finalText?: string) => {
+  const finalizeAssistantStream = useCallback((_finalText?: string) => {
     // 重置流式消息跟踪
     assistantStreamRef.current = { message: null, content: '' };
   }, []);

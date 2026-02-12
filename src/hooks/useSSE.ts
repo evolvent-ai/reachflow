@@ -1,12 +1,26 @@
 import { useCallback, useRef, useState } from 'react';
 import type { SSEEvent, StreamStatus, ResearchPayload } from '@/types/research';
 
+const AUTH_ERROR_MESSAGE = 'Authentication failed: AuthErrorReason.SESSION_TOKEN_MISSING';
 
 interface UseSSEOptions {
   onEvent?: (event: SSEEvent) => void;
   onError?: (error: Error) => void;
   onOpen?: () => void;
   onClose?: () => void;
+}
+
+/**
+ * 处理 401 认证失败，跳转到登录页
+ */
+function handleAuthError(): void {
+  // 保存当前路径，登录后可以跳转回来
+  const currentPath = window.location.pathname + window.location.search;
+  if (currentPath !== '/sign-in' && currentPath !== '/sign-up') {
+    sessionStorage.setItem('redirectAfterLogin', currentPath);
+  }
+  // 跳转到登录页
+  window.location.href = '/sign-in';
 }
 
 export function useSSE(baseUrl: string, options: UseSSEOptions = {}) {
@@ -34,6 +48,23 @@ export function useSSE(baseUrl: string, options: UseSSEOptions = {}) {
         body: JSON.stringify(payload),
         signal: abortControllerRef.current?.signal,
       });
+
+      // 处理 401 认证失败
+      if (response.status === 401) {
+        let errorData: { detail?: string } = {};
+        try {
+          errorData = await response.json();
+        } catch {
+          // 解析失败，使用空对象
+        }
+
+        // 检查是否是 session token 缺失的错误
+        if (errorData.detail?.includes(AUTH_ERROR_MESSAGE)) {
+          console.warn('[SSE] Session token missing, redirecting to login...');
+          handleAuthError();
+          throw new Error('Authentication required');
+        }
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

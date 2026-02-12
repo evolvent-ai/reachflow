@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { NAV_LINKS } from '@/constants';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+
+// 动态导入 Clerk 组件
+const SignedIn = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.SignedIn })));
+const SignedOut = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.SignedOut })));
+const UserButton = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.UserButton })));
+
+// 加载占位符
+const ClerkFallback = () => <div className="w-9 h-9" />;
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,44 +78,48 @@ export default function Header() {
 
           {/* Desktop CTA */}
           <div className="hidden lg:flex items-center gap-3">
-            <SignedOut>
-              <button
-                className="btn btn-outline"
-                onClick={() => track('demo_request')}
-              >
-                预约 Demo
-              </button>
-              <a
-                href="#pricing"
-                className="btn btn-primary"
-                onClick={() => track('cta_click_hero')}
-              >
-                获取首批联系人
-              </a>
-            </SignedOut>
-            <SignedIn>
-              <Link
-                to="/research"
-                className="btn btn-secondary text-sm"
-                onClick={() => track('research_nav_click')}
-              >
-                AI 背调
-              </Link>
-              <a
-                href="#pricing"
-                className="btn btn-primary"
-                onClick={() => track('cta_click_hero')}
-              >
-                获取首批联系人
-              </a>
-              <UserButton 
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-9 h-9',
-                  },
-                }}
-              />
-            </SignedIn>
+            <Suspense fallback={<ClerkFallback />}>
+              <SignedOut>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => track('demo_request')}
+                >
+                  预约 Demo
+                </button>
+                <a
+                  href="#pricing"
+                  className="btn btn-primary"
+                  onClick={() => track('cta_click_hero')}
+                >
+                  获取首批联系人
+                </a>
+              </SignedOut>
+            </Suspense>
+            <Suspense fallback={<ClerkFallback />}>
+              <SignedIn>
+                <Link
+                  to="/research"
+                  className="btn btn-secondary text-sm"
+                  onClick={() => track('research_nav_click')}
+                >
+                  AI 背调
+                </Link>
+                <a
+                  href="#pricing"
+                  className="btn btn-primary"
+                  onClick={() => track('cta_click_hero')}
+                >
+                  获取首批联系人
+                </a>
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: 'w-9 h-9',
+                    },
+                  }}
+                />
+              </SignedIn>
+            </Suspense>
           </div>
 
           {/* Mobile Menu Button */}
@@ -137,52 +148,56 @@ export default function Header() {
               </a>
             ))}
             <div className="flex flex-col gap-3 mt-4">
-              <SignedOut>
-                <button
-                  className="btn btn-outline w-full justify-center"
-                  onClick={() => {
-                    track('demo_request');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  预约 Demo
-                </button>
-                <a
-                  href="#pricing"
-                  className="btn btn-primary w-full justify-center"
-                  onClick={() => {
-                    track('cta_click_hero');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  获取首批联系人
-                </a>
-              </SignedOut>
-              <SignedIn>
-                <Link
-                  to="/research"
-                  className="btn btn-secondary w-full justify-center"
-                  onClick={() => {
-                    track('research_nav_click');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  AI 背调
-                </Link>
-                <a
-                  href="#pricing"
-                  className="btn btn-primary w-full justify-center"
-                  onClick={() => {
-                    track('cta_click_hero');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  获取首批联系人
-                </a>
-                <div className="flex justify-center py-2">
-                  <UserButton />
-                </div>
-              </SignedIn>
+              <Suspense fallback={null}>
+                <SignedOut>
+                  <button
+                    className="btn btn-outline w-full justify-center"
+                    onClick={() => {
+                      track('demo_request');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    预约 Demo
+                  </button>
+                  <a
+                    href="#pricing"
+                    className="btn btn-primary w-full justify-center"
+                    onClick={() => {
+                      track('cta_click_hero');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    获取首批联系人
+                  </a>
+                </SignedOut>
+              </Suspense>
+              <Suspense fallback={null}>
+                <SignedIn>
+                  <Link
+                    to="/research"
+                    className="btn btn-secondary w-full justify-center"
+                    onClick={() => {
+                      track('research_nav_click');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    AI 背调
+                  </Link>
+                  <a
+                    href="#pricing"
+                    className="btn btn-primary w-full justify-center"
+                    onClick={() => {
+                      track('cta_click_hero');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    获取首批联系人
+                  </a>
+                  <div className="flex justify-center py-2">
+                    <UserButton />
+                  </div>
+                </SignedIn>
+              </Suspense>
             </div>
           </nav>
         </div>

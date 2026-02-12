@@ -38,7 +38,7 @@ export function useScrollAnimation(options: UseScrollAnimationOptions = {}) {
 }
 
 // 带延迟的动画（用于子元素依次出现）
-export function useStaggeredAnimation(itemCount: number, baseDelay: number = 100) {
+export function useStaggeredAnimation(_itemCount: number, baseDelay: number = 100) {
   const { ref, isVisible } = useScrollAnimation();
   
   const getDelay = (index: number) => {

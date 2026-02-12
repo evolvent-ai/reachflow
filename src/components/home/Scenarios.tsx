@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import { SCENARIOS, SCENARIO_TEMPLATES } from '@/constants/scenarios';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { useScrollAnimation, useStaggeredAnimation } from '@/hooks/useScrollAnimation';
+import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 
 export default function Scenarios() {
   const [activeTab, setActiveTab] = useState('foreign_trade');

@@ -1,5 +1,22 @@
-import { SignIn } from '@clerk/clerk-react';
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+
+// 动态导入 Clerk 组件
+const SignIn = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.SignIn })));
+
+// 加载占位符
+const SignInFallback = () => (
+  <div className="w-full max-w-md mx-auto">
+    <div className="bg-white shadow-card rounded-card p-8">
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+        <div className="h-10 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function SignInPage() {
   return (
@@ -31,25 +48,27 @@ export default function SignInPage() {
             <p className="text-text-secondary">登录您的联脉账户</p>
           </div>
           
-          <SignIn 
-            appearance={{
-              elements: {
-                rootBox: 'mx-auto',
-                card: 'bg-white shadow-card rounded-card',
-                headerTitle: 'hidden',
-                headerSubtitle: 'hidden',
-                socialButtonsBlockButton: 'border-border hover:bg-background',
-                formFieldLabel: 'text-text',
-                formFieldInput: 'input',
-                formButtonPrimary: 'btn btn-primary w-full',
-                footerActionLink: 'text-primary hover:text-primary-dark',
-              },
-            }}
-            routing="path"
-            path="/sign-in"
-            signUpUrl="/sign-up"
-            redirectUrl="/"
-          />
+          <Suspense fallback={<SignInFallback />}>
+            <SignIn 
+              appearance={{
+                elements: {
+                  rootBox: 'mx-auto',
+                  card: 'bg-white shadow-card rounded-card',
+                  headerTitle: 'hidden',
+                  headerSubtitle: 'hidden',
+                  socialButtonsBlockButton: 'border-border hover:bg-background',
+                  formFieldLabel: 'text-text',
+                  formFieldInput: 'input',
+                  formButtonPrimary: 'btn btn-primary w-full',
+                  footerActionLink: 'text-primary hover:text-primary-dark',
+                },
+              }}
+              routing="path"
+              path="/sign-in"
+              signUpUrl="/sign-up"
+              redirectUrl="/"
+            />
+          </Suspense>
         </div>
       </main>
 
