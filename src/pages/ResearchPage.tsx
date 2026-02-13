@@ -16,7 +16,8 @@ export default function ResearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
   // 流式消息跟踪（类似原版 assistantStream）
   const assistantStreamRef = useRef<{
     message: ChatMessage | null;
@@ -43,7 +44,11 @@ export default function ResearchPage() {
   }, [track]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 只在有消息且不是初始加载时滚动
+    if (messages.length > 0 && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
 
   // 自定义选择框组件
@@ -350,7 +355,7 @@ export default function ResearchPage() {
                 {/* Chat Main */}
                 <div className="flex flex-col min-h-0">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-2 min-h-0">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto space-y-4 pr-2 min-h-0">
                     {messages.map((msg, index) => (
                       <div key={msg.id} className="flex flex-col gap-1.5">
                         <div className="text-xs text-[#6b7280]">
