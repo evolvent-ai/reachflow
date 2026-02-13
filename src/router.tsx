@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import HomePage from './pages/HomePage';
 import ResearchPage from './pages/ResearchPage';
+import PricingPage from './pages/PricingPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
             <ResearchPage />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: 'pricing',
+        element: <PricingPage />,
       },
     ],
   },

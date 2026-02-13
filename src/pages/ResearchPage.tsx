@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Trash2, X, Loader2, Octagon } from 'lucide-react';
+import { Send, Trash2, X, Loader2, Octagon, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useResearchStore } from '@/stores/researchStore';
+import { usePaymentStore } from '@/stores/paymentStore';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { streamResearch } from '@/services/research';
+import { getCreditsBalance } from '@/services/payment.api';
 import { PROVIDER_OPTIONS, type SSEEvent, type ProviderType, type ChatMessage } from '@/types/research';
 import { formatTimestamp } from '@/utils/helpers';
 
@@ -38,6 +40,24 @@ export default function ResearchPage() {
     settings,
     updateSettings,
   } = useResearchStore();
+
+  // 全局积分状态
+  const { credits, setCredits } = usePaymentStore();
+
+  // 刷新积分余额
+  const refreshCredits = useCallback(async () => {
+    try {
+      const balance = await getCreditsBalance();
+      setCredits(balance);
+    } catch (error) {
+      console.log('Failed to refresh credits:', error);
+    }
+  }, [setCredits]);
+
+  // 加载积分余额
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits]);
 
   useEffect(() => {
     track('page_view', { page: 'research' });
@@ -262,6 +282,8 @@ export default function ResearchPage() {
         finalizeAssistantStream();
         setStatus('idle');
         setIsLoading(false);
+        // 对话结束后刷新积分（扣除积分后）
+        refreshCredits();
         break;
       // 其他事件不显示在日志中
     }
@@ -310,9 +332,20 @@ export default function ResearchPage() {
                 <span className="text-xs text-[#6b7280]">ReachFlow</span>
               </div>
             </Link>
-            <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
-              返回首页
-            </Link>
+            <div className="flex items-center gap-4">
+              {/* 积分余额 */}
+              <Link
+                to="/pricing"
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors"
+                onClick={() => track('credits_nav_click')}
+              >
+                <Zap size={18} />
+                <span>{credits?.credits ?? 0} 积分</span>
+              </Link>
+              <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
+                返回首页
+              </Link>
+            </div>
           </div>
         </div>
       </header>

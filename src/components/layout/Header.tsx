@@ -1,8 +1,10 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Zap } from 'lucide-react';
 import { NAV_LINKS } from '@/constants';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { usePaymentStore } from '@/stores/paymentStore';
+import { getCreditsBalance } from '@/services/payment.api';
 
 // 动态导入 Clerk 组件
 const SignedIn = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.SignedIn })));
@@ -16,6 +18,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { track } = useAnalytics();
+  const { credits, setCredits } = usePaymentStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +27,20 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // 加载积分余额
+  useEffect(() => {
+    const loadCredits = async () => {
+      try {
+        const balance = await getCreditsBalance();
+        setCredits(balance);
+      } catch (error) {
+        // 未登录时不显示错误
+        console.log('Failed to load credits:', error);
+      }
+    };
+    loadCredits();
+  }, [setCredits]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -98,20 +115,21 @@ export default function Header() {
             <Suspense fallback={<ClerkFallback />}>
               <SignedIn>
                 <Link
+                  to="/pricing"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors"
+                  onClick={() => track('credits_nav_click')}
+                >
+                  <Zap size={16} />
+                  <span>{credits?.credits ?? 0} 积分</span>
+                </Link>
+                <Link
                   to="/research"
                   className="btn btn-secondary text-sm"
                   onClick={() => track('research_nav_click')}
                 >
                   AI 背调
                 </Link>
-                <a
-                  href="#pricing"
-                  className="btn btn-primary"
-                  onClick={() => track('cta_click_hero')}
-                >
-                  获取首批联系人
-                </a>
-                <UserButton 
+                <UserButton
                   appearance={{
                     elements: {
                       avatarBox: 'w-9 h-9',
