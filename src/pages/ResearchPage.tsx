@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Send, Trash2, X, Loader2, Octagon, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAuth } from '@clerk/clerk-react';
 import { useResearchStore } from '@/stores/researchStore';
 import { usePaymentStore } from '@/stores/paymentStore';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -13,6 +14,7 @@ import { formatTimestamp } from '@/utils/helpers';
 
 export default function ResearchPage() {
   const { track } = useAnalytics();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const [query, setQuery] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,22 +44,52 @@ export default function ResearchPage() {
   } = useResearchStore();
 
   // 全局积分状态
-  const { credits, setCredits } = usePaymentStore();
+  const { credits, setCredits, isLoadingCredits, setIsLoadingCredits } = usePaymentStore();
 
-  // 刷新积分余额
+  // 加载积分余额 - 等待 Clerk 加载完成后请求
+  useEffect(() => {
+    const loadCredits = async () => {
+      // 等待 Clerk 加载完成
+      if (!isLoaded) {
+        setIsLoadingCredits(true);
+        return;
+      }
+
+      // 只在用户已登录时加载积分
+      if (!isSignedIn) {
+        setCredits(null);
+        setIsLoadingCredits(false);
+        return;
+      }
+
+      setIsLoadingCredits(true);
+      try {
+        console.log('[ResearchPage] Loading credits for user:', userId);
+        const balance = await getCreditsBalance();
+        console.log('[ResearchPage] Credits loaded:', balance);
+        setCredits(balance);
+      } catch (error) {
+        console.log('[ResearchPage] Failed to load credits:', error);
+        setCredits(null);
+      } finally {
+        setIsLoadingCredits(false);
+      }
+    };
+    loadCredits();
+  }, [isLoaded, isSignedIn, userId, setCredits, setIsLoadingCredits]);
+
+  // 刷新积分余额（供其他地方调用）
   const refreshCredits = useCallback(async () => {
+    if (!isSignedIn) return;
+
     try {
+      console.log('[ResearchPage] Refreshing credits...');
       const balance = await getCreditsBalance();
       setCredits(balance);
     } catch (error) {
-      console.log('Failed to refresh credits:', error);
+      console.log('[ResearchPage] Failed to refresh credits:', error);
     }
-  }, [setCredits]);
-
-  // 加载积分余额
-  useEffect(() => {
-    refreshCredits();
-  }, [refreshCredits]);
+  }, [isSignedIn, setCredits]);
 
   useEffect(() => {
     track('page_view', { page: 'research' });
@@ -340,7 +372,7 @@ export default function ResearchPage() {
                 onClick={() => track('credits_nav_click')}
               >
                 <Zap size={18} />
-                <span>{credits?.credits ?? 0} 积分</span>
+                <span>{isLoadingCredits ? '--' : (credits?.credits ?? 0)} 积分</span>
               </Link>
               <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
                 返回首页

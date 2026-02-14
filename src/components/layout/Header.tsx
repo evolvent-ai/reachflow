@@ -5,6 +5,7 @@ import { NAV_LINKS } from '@/constants';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { usePaymentStore } from '@/stores/paymentStore';
 import { getCreditsBalance } from '@/services/payment.api';
+import { useAuth } from '@clerk/clerk-react';
 
 // 动态导入 Clerk 组件
 const SignedIn = lazy(() => import('@clerk/clerk-react').then(m => ({ default: m.SignedIn })));
@@ -18,7 +19,8 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { track } = useAnalytics();
-  const { credits, setCredits } = usePaymentStore();
+  const { credits, setCredits, isLoadingCredits, setIsLoadingCredits } = usePaymentStore();
+  const { isLoaded, isSignedIn, userId } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,19 +30,38 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 加载积分余额
+  // 加载积分余额 - 当 Clerk 加载完成且用户已登录时请求
   useEffect(() => {
     const loadCredits = async () => {
+      // 等待 Clerk 加载完成
+      if (!isLoaded) {
+        setIsLoadingCredits(true);
+        return;
+      }
+
+      // 只在用户已登录时加载积分
+      if (!isSignedIn) {
+        setCredits(null);
+        setIsLoadingCredits(false);
+        return;
+      }
+
+      setIsLoadingCredits(true);
       try {
+        console.log('[Header] Loading credits for user:', userId);
         const balance = await getCreditsBalance();
+        console.log('[Header] Credits loaded:', balance);
         setCredits(balance);
       } catch (error) {
-        // 未登录时不显示错误
-        console.log('Failed to load credits:', error);
+        // 未登录或请求失败时不显示错误
+        console.log('[Header] Failed to load credits:', error);
+        setCredits(null);
+      } finally {
+        setIsLoadingCredits(false);
       }
     };
     loadCredits();
-  }, [setCredits]);
+  }, [isLoaded, isSignedIn, userId, setCredits, setIsLoadingCredits]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -120,7 +141,7 @@ export default function Header() {
                   onClick={() => track('credits_nav_click')}
                 >
                   <Zap size={16} />
-                  <span>{credits?.credits ?? 0} 积分</span>
+                  <span>{isLoadingCredits ? '--' : (credits?.credits ?? 0)} 积分</span>
                 </Link>
                 <Link
                   to="/research"
@@ -191,6 +212,17 @@ export default function Header() {
               </Suspense>
               <Suspense fallback={null}>
                 <SignedIn>
+                  <Link
+                    to="/pricing"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-primary/10 text-primary rounded-lg font-medium hover:bg-primary/20 transition-colors"
+                    onClick={() => {
+                      track('credits_nav_click');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <Zap size={20} />
+                    <span>{isLoadingCredits ? '--' : (credits?.credits ?? 0)} 积分</span>
+                  </Link>
                   <Link
                     to="/research"
                     className="btn btn-secondary w-full justify-center"
