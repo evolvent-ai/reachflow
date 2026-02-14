@@ -11,6 +11,7 @@ import { streamResearch } from '@/services/research';
 import { getCreditsBalance } from '@/services/payment.api';
 import { PROVIDER_OPTIONS, type SSEEvent, type ProviderType, type ChatMessage } from '@/types/research';
 import { formatTimestamp } from '@/utils/helpers';
+import { router } from '@/router';
 
 export default function ResearchPage() {
   const { track } = useAnalytics();
@@ -212,6 +213,17 @@ export default function ResearchPage() {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
 
+    if (!isSignedIn) {
+      router.navigate('/sign-in');
+      return;
+    }
+
+    const balance = await getCreditsBalance();
+    if (balance.credits <= 0) {
+        alert('积分不足，请充值');
+        return;
+    }
+
     const userMessage = query.trim();
     setQuery('');
     setIsLoading(true);
@@ -365,18 +377,31 @@ export default function ResearchPage() {
               </div>
             </Link>
             <div className="flex items-center gap-4">
-              {/* 积分余额 */}
-              <Link
-                to="/pricing"
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors"
-                onClick={() => track('credits_nav_click')}
-              >
-                <Zap size={18} />
-                <span>{isLoadingCredits ? '--' : (credits?.credits ?? 0)} 积分</span>
-              </Link>
-              <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
-                返回首页
-              </Link>
+              {isSignedIn ? (
+                <>
+                  {/* 积分余额 */}
+                  <Link
+                    to="/pricing"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-colors"
+                    onClick={() => track('credits_nav_click')}
+                  >
+                    <Zap size={18} />
+                    <span>{isLoadingCredits ? '--' : (credits?.credits ?? 0)} 积分</span>
+                  </Link>
+                  <Link to="/" className="btn btn-outline" onClick={() => track('research_back_home')}>
+                    返回首页
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/sign-in" className="btn btn-outline" onClick={() => track('sign_in_click')}>
+                    登录
+                  </Link>
+                  <Link to="/sign-up" className="btn btn-primary" onClick={() => track('sign_up_click')}>
+                    注册
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
