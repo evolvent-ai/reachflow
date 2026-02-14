@@ -4,6 +4,22 @@ import type { ResearchPayload, SSEEvent } from '@/types/research';
 const AUTH_ERROR_MESSAGE = 'Authentication failed: AuthErrorReason.SESSION_TOKEN_MISSING';
 
 /**
+ * 获取 Clerk JWT Token
+ */
+async function getClerkToken(): Promise<string | null> {
+  try {
+    // 从 window.Clerk 获取 token（避免在普通函数中使用 React Hook）
+    const clerk = (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string | null> } } }).Clerk;
+    if (clerk?.session) {
+      return await clerk.session.getToken();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 处理 401 认证失败，跳转到登录页
  */
 function handleAuthError(): void {
@@ -17,12 +33,20 @@ function handleAuthError(): void {
 }
 
 export async function* streamResearch(payload: ResearchPayload, signal?: AbortSignal): AsyncGenerator<SSEEvent> {
+  const token = await getClerkToken();
+
+  // 没有 token 说明用户未登录，直接抛出错误，不发请求
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
   const response = await fetch(`${API_BASE_URL}/research/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
       'Cache-Control': 'no-cache',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
     signal,
