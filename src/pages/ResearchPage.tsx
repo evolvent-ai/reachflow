@@ -19,6 +19,7 @@ export default function ResearchPage() {
   const [query, setQuery] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +96,23 @@ export default function ResearchPage() {
   useEffect(() => {
     track('page_view', { page: 'research' });
   }, [track]);
+
+  // 倒计时效果
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown === 0) {
+      router.navigate('/pricing');
+      setCountdown(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   useEffect(() => {
     // 只在有消息且不是初始加载时滚动
@@ -220,7 +238,7 @@ export default function ResearchPage() {
 
     const balance = await getCreditsBalance();
     if (balance.credits <= 0) {
-        alert('积分不足，请充值');
+        setCountdown(3); // 开始3秒倒计时
         return;
     }
 
@@ -365,6 +383,34 @@ export default function ResearchPage() {
 
   return (
     <div data-page="research" className="min-h-screen bg-[#f8fafc]">
+      {/* 倒计时提示 */}
+      {countdown !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md mx-4 text-center">
+            <div className="mb-4">
+              <Zap className="w-16 h-16 text-primary mx-auto" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">积分不足</h3>
+            <p className="text-gray-600 mb-6">
+              您的积分余额不足，请充值后继续使用
+            </p>
+            <div className="text-5xl font-bold text-primary mb-6">
+              {countdown}
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              {countdown} 秒后自动跳转到充值页面
+            </p>
+            <Link
+              to="/pricing"
+              className="btn btn-primary w-full justify-center"
+              onClick={() => setCountdown(null)}
+            >
+              立即充值
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/92 border-b border-[rgba(229,231,235,0.6)] backdrop-blur-xl">
         <div className="container">
