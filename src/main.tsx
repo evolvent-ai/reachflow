@@ -34,7 +34,13 @@ if (!isValidClerkKey) {
   import('@clerk/clerk-react').then(({ ClerkProvider }) => {
     root.render(
       <StrictMode>
-        <ClerkProvider publishableKey={publishableKey}>
+        <ClerkProvider
+          publishableKey={publishableKey}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          afterSignInUrl="/"
+          afterSignUpUrl="/"
+        >
           <RouterProvider router={router} />
         </ClerkProvider>
       </StrictMode>

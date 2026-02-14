@@ -83,14 +83,16 @@ function handleAuthError(): void {
 async function authRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
   const token = await getClerkToken();
 
+  // 没有 token 说明用户未登录，直接抛出错误，不发请求
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> || {}),
+    'Authorization': `Bearer ${token}`,
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
