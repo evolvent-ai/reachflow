@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Send,
-  Trash2,
   Loader2,
   Octagon,
   Zap,
@@ -773,37 +772,42 @@ export default function ResearchPage() {
           {/* input area */}
           <div className="flex-shrink-0 border-t border-[#e5e7eb] px-6 py-4">
             <form onSubmit={handleSubmit}>
-              <textarea
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (query.trim() && !isLoading) handleSubmit(e);
-                  }
-                }}
-                placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
-                className="input w-full resize-none px-4 py-3 text-[15px] leading-relaxed"
-                style={{ minHeight: '90px', maxHeight: '120px' }}
-                rows={3}
-                disabled={isLoading}
-              />
-              <div className="flex gap-3 mt-3">
-                {isLoading ? (
-                  <button type="button" onClick={handleStop} className="btn bg-error text-white hover:bg-error/90">
-                    <Octagon size={16} className="mr-1.5" fill="currentColor" />
+              <div className="relative">
+                <textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (query.trim() && !isLoading) handleSubmit(e);
+                    }
+                  }}
+                  placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
+                  className="input w-full resize-none px-4 py-3 pb-12 text-[15px] leading-relaxed"
+                  style={{ minHeight: '100px', maxHeight: '160px' }}
+                  rows={3}
+                  disabled={isLoading}
+                />
+                {/* stop button — always visible while loading */}
+                {isLoading && (
+                  <button
+                    type="button"
+                    onClick={handleStop}
+                    className="absolute right-3 bottom-3 flex items-center gap-1.5 px-3 py-1.5 bg-error text-white text-sm font-medium rounded-lg hover:bg-error/90 transition-colors"
+                  >
+                    <Octagon size={14} fill="currentColor" />
                     停止
                   </button>
-                ) : (
-                  <button type="submit" disabled={!query.trim()} className="btn btn-primary">
-                    <Send size={16} className="mr-1.5" />
-                    发送
+                )}
+                {/* send button — only visible when there is input and not loading */}
+                {!isLoading && query.trim() && (
+                  <button
+                    type="submit"
+                    className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Send size={16} />
                   </button>
                 )}
-                <button type="button" onClick={handleNewConversation} className="btn btn-secondary">
-                  <Trash2 size={16} className="mr-1.5" />
-                  清空
-                </button>
               </div>
             </form>
           </div>
