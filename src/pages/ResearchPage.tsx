@@ -69,18 +69,6 @@ const formatUsageStats = (data: any): string => {
   return parts.length ? parts.join(' · ') : '用量统计';
 };
 
-const formatSessionDate = (created_at: number | string): string => {
-  try {
-    const ms = typeof created_at === 'number' ? created_at * 1000 : new Date(created_at).getTime();
-    const diffDays = Math.floor((Date.now() - ms) / 86_400_000);
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7) return `${diffDays}天前`;
-    return new Date(ms).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
-  } catch {
-    return '';
-  }
-};
 
 const getSessionTitle = (s: ConversationSession): string =>
   s.query_preview || s.preview || s.first_user_message || s.title || s.session_id;
@@ -741,40 +729,38 @@ export default function ResearchPage() {
           {!sidebarCollapsed && (
             <>
               {/* new conversation */}
-              <div className="p-2 flex-shrink-0">
+              <div className="px-2 pt-2 pb-1 flex-shrink-0">
                 <button
                   onClick={handleNewConversation}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary border border-dashed border-primary/30 rounded-xl hover:bg-primary/5 transition-colors"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-[#6b7280] rounded-lg hover:bg-white/70 transition-colors"
                 >
-                  <Plus size={13} />
+                  <Plus size={14} />
                   新对话
                 </button>
               </div>
 
               {/* sessions list */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto py-1">
                 {isLoadingSessions ? (
                   <div className="flex justify-center py-6">
                     <Loader2 size={15} className="animate-spin text-[#9ca3af]" />
                   </div>
                 ) : sessions.length === 0 ? (
-                  <p className="text-[11px] text-[#9ca3af] text-center py-8 px-3">暂无历史对话</p>
+                  <p className="text-[12px] text-[#9ca3af] text-center py-8 px-3">暂无历史对话</p>
                 ) : (
                   sessions.map((session) => (
                     <button
                       key={session.session_id}
                       onClick={() => handleLoadSession(session.session_id)}
-                      className={`w-full text-left px-3 py-2.5 border-b border-[#e5e7eb]/60 transition-colors hover:bg-white ${
+                      className={`w-full text-left mx-2 px-4 py-3 rounded-lg transition-colors duration-150 ${
                         activeSessionId === session.session_id
-                          ? 'bg-primary/5 border-l-2 border-l-primary'
-                          : ''
+                          ? 'bg-white shadow-sm'
+                          : 'hover:bg-white/70'
                       }`}
+                      style={{ width: 'calc(100% - 16px)' }}
                     >
-                      <div className="text-[11px] font-medium text-[#374151] truncate leading-snug">
+                      <div className="text-[14px] font-normal text-[#1a1a1a] truncate leading-snug tracking-[-0.1px]">
                         {getSessionTitle(session)}
-                      </div>
-                      <div className="text-[10px] text-[#9ca3af] mt-0.5">
-                        {formatSessionDate(session.created_at)}
                       </div>
                     </button>
                   ))
