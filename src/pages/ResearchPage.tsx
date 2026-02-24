@@ -259,6 +259,9 @@ export default function ResearchPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem('research_sidebar_collapsed') === 'true',
   );
+  const [thinkingCollapsed, setThinkingCollapsed] = useState(
+    () => localStorage.getItem('research_thinking_collapsed') === 'true',
+  );
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
@@ -346,6 +349,14 @@ export default function ResearchPage() {
     setSidebarCollapsed((prev) => {
       const next = !prev;
       localStorage.setItem('research_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const handleToggleThinking = () => {
+    setThinkingCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('research_thinking_collapsed', String(next));
       return next;
     });
   };
@@ -783,7 +794,7 @@ export default function ResearchPage() {
                   一个窗口，完成对外贸买家的 AI 背调
                 </h2>
                 <p className="text-sm text-[#6b7280] max-w-md">
-                  输入目标公司名称或联系人，AI 将通过公开渠道完成尽职调查并输出报告。
+                  输入目标公司名称或联系人，AI将通过公开渠道完成尽职调查并输出报告
                 </p>
               </div>
             ) : (
@@ -878,39 +889,55 @@ export default function ResearchPage() {
         </div>
 
         {/* ── right: thinking chain ── */}
-        <aside className="w-[300px] flex-shrink-0 border-l border-[#e5e7eb] flex flex-col overflow-hidden bg-[#f8fafc]">
+        <aside
+          style={{ width: thinkingCollapsed ? '40px' : '300px' }}
+          className="transition-[width] duration-200 ease-in-out flex-shrink-0 border-l border-[#e5e7eb] flex flex-col overflow-hidden bg-[#f8fafc]"
+        >
           {/* panel header */}
-          <div className="flex-shrink-0 flex items-center justify-between px-4 h-12 border-b border-[#e5e7eb]">
-            <span className="text-sm font-semibold text-[#111827]">思考过程</span>
-            <span
-              className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusColor[status] ?? statusColor.idle}`}
+          <div className="flex-shrink-0 flex items-center h-12 px-2 border-b border-[#e5e7eb] gap-1">
+            <button
+              onClick={handleToggleThinking}
+              className="p-1.5 hover:bg-[#e5e7eb] rounded-md transition-colors text-[#6b7280] flex-shrink-0"
+              title={thinkingCollapsed ? '展开思考面板' : '折叠思考面板'}
             >
-              {statusLabel[status] ?? '待机'}
-            </span>
+              {thinkingCollapsed ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+            </button>
+            {!thinkingCollapsed && (
+              <>
+                <span className="flex-1 text-sm font-semibold text-[#111827]">思考过程</span>
+                <span
+                  className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusColor[status] ?? statusColor.idle}`}
+                >
+                  {statusLabel[status] ?? '待机'}
+                </span>
+              </>
+            )}
           </div>
 
           {/* entries */}
-          <div ref={thinkingContainerRef} className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
-            {thinkingEntries.length === 0 ? (
-              <p className="text-[11px] text-[#9ca3af] text-center py-10">等待开始...</p>
-            ) : (
-              thinkingEntries.map((entry) => (
-                <ThinkingEntryRow
-                  key={entry.id}
-                  entry={entry}
-                  isExpanded={expandedThinking.has(entry.id)}
-                  onToggle={() => toggleThinkingExpand(entry.id)}
-                />
-              ))
-            )}
-            {/* loading indicator at bottom while streaming */}
-            {isLoading && (
-              <div className="flex items-center gap-2 px-3 py-2 mt-1">
-                <Loader2 size={13} className="animate-spin text-primary flex-shrink-0" />
-                <span className="text-[11px] text-[#9ca3af]">处理中...</span>
-              </div>
-            )}
-          </div>
+          {!thinkingCollapsed && (
+            <div ref={thinkingContainerRef} className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
+              {thinkingEntries.length === 0 ? (
+                <p className="text-[11px] text-[#9ca3af] text-center py-10">等待开始...</p>
+              ) : (
+                thinkingEntries.map((entry) => (
+                  <ThinkingEntryRow
+                    key={entry.id}
+                    entry={entry}
+                    isExpanded={expandedThinking.has(entry.id)}
+                    onToggle={() => toggleThinkingExpand(entry.id)}
+                  />
+                ))
+              )}
+              {/* loading indicator at bottom while streaming */}
+              {isLoading && (
+                <div className="flex items-center gap-2 px-3 py-2 mt-1">
+                  <Loader2 size={13} className="animate-spin text-primary flex-shrink-0" />
+                  <span className="text-[11px] text-[#9ca3af]">处理中...</span>
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       </div>
 
