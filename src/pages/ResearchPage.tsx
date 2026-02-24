@@ -113,7 +113,7 @@ function HistoricalMessageItem({ msg }: { msg: ApiMessage }) {
       <div className="flex flex-col gap-1.5">
         <div className="text-xs text-[#9ca3af]">AI 助手</div>
         <div className="bg-white border border-[#e5e7eb] rounded-[18px] p-4">
-          <div className="prose prose-sm max-w-none">
+          <div className="md-content">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
         </div>
@@ -749,7 +749,7 @@ export default function ResearchPage() {
                     }`}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm max-w-none">
+                      <div className="md-content">
                         {msg.content ? (
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                         ) : null}
