@@ -107,8 +107,6 @@ const TOOL_ICON: Record<string, string> = {
 };
 
 function HistoricalMessageItem({ msg }: { msg: ApiMessage }) {
-  const [expanded, setExpanded] = useState(false);
-
   if (msg.role === 'assistant') {
     const text = getApiText(msg.content);
     if (!text.trim()) return null;
@@ -125,27 +123,7 @@ function HistoricalMessageItem({ msg }: { msg: ApiMessage }) {
   }
 
   if (msg.role === 'user') {
-    const text = getApiText(msg.content);
-    if (!text.trim()) return null;
-    const isLong = text.length > 300;
-    return (
-      <div className="flex flex-col gap-1.5">
-        {/* <div className="text-xs text-[#9ca3af]">你</div>
-        <div className="bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)] rounded-[18px] p-4 text-sm">
-          <p className="whitespace-pre-wrap break-words leading-relaxed">
-            {isLong && !expanded ? text.slice(0, 300) + '…' : text}
-          </p>
-          {isLong && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="text-primary text-xs mt-2 hover:underline"
-            >
-              {expanded ? '收起' : '展开全文'}
-            </button>
-          )}
-        </div> */}
-      </div>
-    );
+    return null;
   }
 
   if (msg.role === 'assistant_tool_call') {
