@@ -4,7 +4,7 @@ export type ProviderType = 'openai' | 'anthropic' | 'gemini';
 
 export type StreamStatus = 'idle' | 'active' | 'streaming' | 'error';
 
-export type EventType = 
+export type EventType =
   | 'search_start'
   | 'search_results'
   | 'open_url_start'
@@ -20,7 +20,8 @@ export type EventType =
   | 'log'
   | 'user_message'
   | 'llm_request'
-  | 'llm_response';
+  | 'llm_response'
+  | 'usage_stats';
 
 export interface SSEEvent {
   type?: EventType;
@@ -44,13 +45,50 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-export interface TimelineEntry {
+export interface ThinkingEntry {
   id: string;
   type: EventType;
-  title: string;
-  description?: string;
-  html?: string;
+  /** Short display label shown in collapsed state */
+  content: string;
+  /** Full text content, used for expandable assistant_message entries */
+  detail: string;
   timestamp: number;
+  isStreaming: boolean;
+}
+
+export interface ConversationSession {
+  session_id: string;
+  created_at: number | string; // unix timestamp (seconds) or ISO string
+  updated_at?: number | string;
+  query_preview?: string;
+  preview?: string;
+  first_user_message?: string;
+  title?: string;
+  message_count?: number;
+  transaction_uid?: string;
+  transaction_no?: string;
+}
+
+export interface ApiContentBlock {
+  type: 'text' | 'tool_call';
+  text?: string;
+  tool_name?: string;
+  tool_input?: Record<string, any>;
+  tool_id?: string;
+}
+
+export interface ApiMessage {
+  uid: string;
+  seq: number;
+  role: 'user' | 'assistant' | 'assistant_tool_call' | 'tool';
+  content: ApiContentBlock[];
+}
+
+/** @deprecated use ApiMessage instead */
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  created_at?: string;
 }
 
 export interface ResearchSettings {
