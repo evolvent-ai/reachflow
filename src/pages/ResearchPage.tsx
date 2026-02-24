@@ -256,12 +256,16 @@ export default function ResearchPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   // sidebar
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem('research_sidebar_collapsed') === 'true',
-  );
-  const [thinkingCollapsed, setThinkingCollapsed] = useState(
-    () => localStorage.getItem('research_thinking_collapsed') === 'true',
-  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const stored = localStorage.getItem('research_sidebar_collapsed');
+    if (stored !== null) return stored === 'true';
+    return window.innerWidth < 768; // collapsed by default on mobile
+  });
+  const [thinkingCollapsed, setThinkingCollapsed] = useState(() => {
+    const stored = localStorage.getItem('research_thinking_collapsed');
+    if (stored !== null) return stored === 'true';
+    return window.innerWidth < 768; // collapsed by default on mobile
+  });
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
