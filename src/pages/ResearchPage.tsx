@@ -273,6 +273,7 @@ export default function ResearchPage() {
 
   // refs
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isSubmittingRef = useRef(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const thinkingContainerRef = useRef<HTMLDivElement>(null);
 
@@ -397,7 +398,7 @@ export default function ResearchPage() {
           finishLastThinking();
           addThinkingEntry({
             type: 'llm_request',
-            content: `调用模型：${data?.model || '-'}`,
+            content: `分析输入`,
             detail: '',
             isStreaming: false,
           });
@@ -411,7 +412,7 @@ export default function ResearchPage() {
           finishLastThinking();
           addThinkingEntry({
             type: 'search_start',
-            content: `搜索：${data?.query || data?.q || '...'}`,
+            content: "执行搜索任务",
             detail: '',
             isStreaming: false,
           });
@@ -519,11 +520,16 @@ export default function ResearchPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || isLoading) return;
+    if (!query.trim() || isLoading || isSubmittingRef.current) return;
     if (!isSignedIn) { router.navigate('/sign-in'); return; }
 
+    isSubmittingRef.current = true;
     const balance = await getCreditsBalance();
-    if (balance.credits <= 0) { setCountdown(3); return; }
+    if (balance.credits <= 0) {
+      isSubmittingRef.current = false;
+      setCountdown(3);
+      return;
+    }
 
     const userMessage = query.trim();
     setQuery('');
@@ -556,6 +562,7 @@ export default function ResearchPage() {
       setIsLoading(false);
       setStatus('idle');
       abortControllerRef.current = null;
+      isSubmittingRef.current = false;
     }
   };
 
