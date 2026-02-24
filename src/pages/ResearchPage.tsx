@@ -11,6 +11,7 @@ import {
   Check,
   Search,
   X,
+  Download,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -565,6 +566,58 @@ export default function ResearchPage() {
     }
   };
 
+  const handleDownloadPDF = (msgId: string) => {
+    const el = document.getElementById(`md-${msgId}`);
+    const html = el?.innerHTML ?? '';
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+
+    win.document.write(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>AI 研究报告</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      font-size: 15px;
+      line-height: 1.8;
+      color: #1a1a1a;
+      padding: 40px 48px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+    h1 { font-size: 24px; font-weight: 700; margin-top: 36px; margin-bottom: 12px; color: #111; }
+    h2 { font-size: 20px; font-weight: 700; margin-top: 28px; margin-bottom: 10px; color: #111; }
+    h3 { font-size: 16px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; color: #111; }
+    p { font-size: 15px; color: #333; margin: 8px 0; }
+    ul { padding-left: 24px; margin: 8px 0 16px 0; list-style-type: disc; }
+    ol { padding-left: 24px; margin: 8px 0 16px 0; list-style-type: decimal; }
+    ul li, ol li { font-size: 15px; color: #333; line-height: 1.9; margin-bottom: 4px; }
+    code { font-family: "Menlo", "Consolas", monospace; font-size: 13px; color: #c0392b; background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 1px 5px; }
+    pre { background-color: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; }
+    pre code { color: #1a1a1a; background: none; border: none; padding: 0; font-size: 13px; }
+    strong, b { font-weight: 700; color: #111; }
+    a { color: #2f6fed; text-decoration: underline; text-underline-offset: 2px; }
+    blockquote { border-left: 3px solid #e5e7eb; padding-left: 16px; margin: 12px 0; color: #6b7280; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th { background: #f8fafc; font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid #e5e7eb; color: #374151; }
+    td { padding: 8px 12px; border: 1px solid #e5e7eb; color: #374151; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+  ${html}
+  <script>window.onload = function() { window.print(); };<\/script>
+</body>
+</html>`);
+    win.document.close();
+  };
+
   const handleStop = () => {
     abortControllerRef.current?.abort();
     finishStreaming();
@@ -740,7 +793,7 @@ export default function ResearchPage() {
                     {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI 助手' : '系统'}
                   </div>
                   <div
-                    className={`rounded-[18px] p-4 leading-relaxed ${
+                    className={`relative rounded-[18px] p-4 leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
                         : msg.role === 'error'
@@ -749,17 +802,28 @@ export default function ResearchPage() {
                     }`}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="md-content">
-                        {msg.content ? (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                        ) : null}
-                        {msg.isStreaming && index === messages.length - 1 && !msg.content && (
-                          <div className="flex items-center gap-2 text-[#6b7280]">
-                            <Loader2 size={15} className="animate-spin text-primary" />
-                            <span className="text-sm">正在生成报告...</span>
-                          </div>
+                      <>
+                        {!msg.isStreaming && msg.content && (
+                          <button
+                            onClick={() => handleDownloadPDF(msg.id)}
+                            className="absolute right-3 top-3 flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dark transition-colors shadow-sm"
+                          >
+                            <Download size={13} />
+                            下载报告
+                          </button>
                         )}
-                      </div>
+                        <div className="md-content" id={`md-${msg.id}`}>
+                          {msg.content ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          ) : null}
+                          {msg.isStreaming && index === messages.length - 1 && !msg.content && (
+                            <div className="flex items-center gap-2 text-[#6b7280]">
+                              <Loader2 size={15} className="animate-spin text-primary" />
+                              <span className="text-sm">正在生成报告...</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     ) : (
                       <p className="text-sm">{msg.content}</p>
                     )}
