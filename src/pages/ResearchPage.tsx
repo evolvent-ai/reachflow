@@ -828,6 +828,13 @@ export default function ResearchPage() {
                 />
               ))
             )}
+            {/* loading indicator at bottom while streaming */}
+            {isLoading && (
+              <div className="flex items-center gap-2 px-3 py-2 mt-1">
+                <Loader2 size={13} className="animate-spin text-primary flex-shrink-0" />
+                <span className="text-[11px] text-[#9ca3af]">处理中...</span>
+              </div>
+            )}
           </div>
         </aside>
       </div>
