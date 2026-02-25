@@ -789,17 +789,20 @@ export default function ResearchPage() {
               </div>
             ) : (
               messages.map((msg, index) => (
-                <div key={msg.id} className="flex flex-col gap-1.5">
+                <div
+                  key={msg.id}
+                  className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                >
                   <div className="text-xs text-[#9ca3af]">
                     {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI 助手' : '系统'}
                   </div>
                   <div
                     className={`relative rounded-[18px] p-4 leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
+                        ? 'max-w-[75%] bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
                         : msg.role === 'error'
-                        ? 'bg-red-50 border border-red-200 text-red-600'
-                        : 'bg-white border border-[#e5e7eb]'
+                        ? 'w-full bg-red-50 border border-red-200 text-red-600'
+                        : 'w-full bg-white border border-[#e5e7eb]'
                     }`}
                   >
                     {msg.role === 'assistant' ? (
