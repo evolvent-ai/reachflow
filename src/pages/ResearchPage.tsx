@@ -775,8 +775,9 @@ export default function ResearchPage() {
           {/* messages — live view only */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-6 py-5 space-y-4 min-h-0"
+            className="flex-1 overflow-y-auto min-h-0 px-4 py-5"
           >
+            <div className="max-w-[760px] mx-auto w-full space-y-4">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-8">
                 <p className="text-sm text-primary font-medium mb-2">AI 背调实验台 · 内测</p>
@@ -810,10 +811,10 @@ export default function ResearchPage() {
                         {!msg.isStreaming && msg.content && (
                           <button
                             onClick={() => handleDownloadPDF(msg.id)}
-                            className="absolute right-3 top-3 flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dark transition-colors shadow-sm"
+                            className="absolute right-3 top-3 ml-3 p-1.5 text-[#c8cdd5] hover:text-[#6b7280] transition-colors rounded"
+                            title="下载报告"
                           >
-                            <Download size={13} />
-                            下载报告
+                            <Download size={15} />
                           </button>
                         )}
                         <div className="md-content" id={`md-${msg.id}`}>
@@ -835,10 +836,12 @@ export default function ResearchPage() {
                 </div>
               ))
             )}
+            </div>
           </div>
 
           {/* input area */}
-          <div className="flex-shrink-0 border-t border-[#e5e7eb] px-6 py-4">
+          <div className="flex-shrink-0 px-4 py-4">
+            <div className="max-w-[760px] mx-auto w-full">
             <form onSubmit={handleSubmit}>
               <div className="relative">
                 <textarea
@@ -878,6 +881,7 @@ export default function ResearchPage() {
                 )}
               </div>
             </form>
+            </div>
           </div>
         </div>
 
