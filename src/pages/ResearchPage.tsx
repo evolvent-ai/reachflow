@@ -772,117 +772,148 @@ export default function ResearchPage() {
 
         {/* ── middle: chat area ── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white">
-          {/* messages — live view only */}
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto min-h-0 px-4 py-5"
-          >
-            <div className="max-w-[760px] mx-auto w-full space-y-4">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center px-8">
-                <p className="text-sm text-primary font-medium mb-2">AI 背调实验台 · 内测</p>
-                <h2 className="text-2xl font-bold text-[#111827] mb-3">
-                  一个窗口，完成对外贸买家的 AI 背调
-                </h2>
-                <p className="text-sm text-[#6b7280] max-w-md">
-                  输入目标公司名称或联系人，AI将通过公开渠道完成尽职调查并输出报告
-                </p>
-              </div>
-            ) : (
-              messages.map((msg, index) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <div className="text-xs text-[#9ca3af]">
-                    {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI 助手' : '系统'}
-                  </div>
-                  <div
-                    className={`relative rounded-[18px] p-4 leading-relaxed ${
-                      msg.role === 'user'
-                        ? 'max-w-[75%] bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
-                        : msg.role === 'error'
-                        ? 'w-full bg-red-50 border border-red-200 text-red-600'
-                        : 'w-full bg-white border border-[#e5e7eb]'
-                    }`}
-                  >
-                    {msg.role === 'assistant' ? (
-                      <>
-                        {!msg.isStreaming && msg.content && (
-                          <button
-                            onClick={() => handleDownloadPDF(msg.id)}
-                            className="absolute right-3 top-3 ml-3 p-1.5 text-[#c8cdd5] hover:text-[#6b7280] transition-colors rounded"
-                            title="下载报告"
-                          >
-                            <Download size={15} />
-                          </button>
-                        )}
-                        <div className="md-content" id={`md-${msg.id}`}>
-                          {msg.content ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                          ) : null}
-                          {msg.isStreaming && index === messages.length - 1 && !msg.content && (
-                            <div className="flex items-center gap-2 text-[#6b7280]">
-                              <Loader2 size={15} className="animate-spin text-primary" />
-                              <span className="text-sm">正在生成报告...</span>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm">{msg.content}</p>
+          {messages.length === 0 ? (
+            /* ── empty state: input vertically centered ── */
+            <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 min-h-0">
+              <div className="w-full max-w-[760px]">
+                <div className="text-center mb-8">
+                  <p className="text-sm text-primary font-medium mb-2">AI 背调实验台 · 内测</p>
+                  <h2 className="text-2xl font-bold text-[#111827] mb-3">
+                    一个窗口，完成对外贸买家的 AI 背调
+                  </h2>
+                  <p className="text-sm text-[#6b7280] max-w-md mx-auto">
+                    输入目标公司名称或联系人，AI 将完成尽职调查并输出报告
+                  </p>
+                </div>
+                <form onSubmit={handleSubmit}>
+                  <div className="relative">
+                    <textarea
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (query.trim() && !isLoading) handleSubmit(e);
+                        }
+                      }}
+                      placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
+                      className="input w-full resize-none px-4 py-3 pb-12 text-[15px] leading-relaxed"
+                      style={{ minHeight: '100px', maxHeight: '160px' }}
+                      rows={3}
+                      disabled={isLoading}
+                    />
+                    {!isLoading && query.trim() && (
+                      <button
+                        type="submit"
+                        className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        <Send size={16} />
+                      </button>
                     )}
                   </div>
-                </div>
-              ))
-            )}
-            </div>
-          </div>
-
-          {/* input area */}
-          <div className="flex-shrink-0 px-4 py-4">
-            <div className="max-w-[760px] mx-auto w-full">
-            <form onSubmit={handleSubmit}>
-              <div className="relative">
-                <textarea
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (query.trim() && !isLoading) handleSubmit(e);
-                    }
-                  }}
-                  placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
-                  className="input w-full resize-none px-4 py-3 pb-12 text-[15px] leading-relaxed"
-                  style={{ minHeight: '100px', maxHeight: '160px' }}
-                  rows={3}
-                  disabled={isLoading}
-                />
-                {/* stop button — always visible while loading */}
-                {isLoading && (
-                  <button
-                    type="button"
-                    onClick={handleStop}
-                    className="absolute right-3 bottom-3 flex items-center gap-1.5 px-3 py-1.5 bg-error text-white text-sm font-medium rounded-lg hover:bg-error/90 transition-colors"
-                  >
-                    <Octagon size={14} fill="currentColor" />
-                    停止
-                  </button>
-                )}
-                {/* send button — only visible when there is input and not loading */}
-                {!isLoading && query.trim() && (
-                  <button
-                    type="submit"
-                    className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                  >
-                    <Send size={16} />
-                  </button>
-                )}
+                </form>
               </div>
-            </form>
             </div>
-          </div>
+          ) : (
+            /* ── active chat: messages + input pinned at bottom ── */
+            <>
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto min-h-0 px-4 py-5"
+              >
+                <div className="max-w-[760px] mx-auto w-full space-y-4">
+                  {messages.map((msg, index) => (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="text-xs text-[#9ca3af]">
+                        {msg.role === 'user' ? '你' : msg.role === 'assistant' ? 'AI 助手' : '系统'}
+                      </div>
+                      <div
+                        className={`relative rounded-[18px] p-4 leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'max-w-[75%] bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
+                            : msg.role === 'error'
+                            ? 'w-full bg-red-50 border border-red-200 text-red-600'
+                            : 'w-full bg-white border border-[#e5e7eb]'
+                        }`}
+                      >
+                        {msg.role === 'assistant' ? (
+                          <>
+                            {!msg.isStreaming && msg.content && (
+                              <button
+                                onClick={() => handleDownloadPDF(msg.id)}
+                                className="absolute right-3 top-3 ml-3 p-1.5 text-[#c8cdd5] hover:text-[#6b7280] transition-colors rounded"
+                                title="下载报告"
+                              >
+                                <Download size={15} />
+                              </button>
+                            )}
+                            <div className="md-content" id={`md-${msg.id}`}>
+                              {msg.content ? (
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                              ) : null}
+                              {msg.isStreaming && index === messages.length - 1 && !msg.content && (
+                                <div className="flex items-center gap-2 text-[#6b7280]">
+                                  <Loader2 size={15} className="animate-spin text-primary" />
+                                  <span className="text-sm">正在生成报告...</span>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-sm">{msg.content}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-shrink-0 px-4 py-4">
+                <div className="max-w-[760px] mx-auto w-full">
+                  <form onSubmit={handleSubmit}>
+                    <div className="relative">
+                      <textarea
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (query.trim() && !isLoading) handleSubmit(e);
+                          }
+                        }}
+                        placeholder="例：请评估 ABC Imports（德国慕尼黑）近 12 个月的舆情、核心联系人，以及可能的合规风险。"
+                        className="input w-full resize-none px-4 py-3 pb-12 text-[15px] leading-relaxed"
+                        style={{ minHeight: '100px', maxHeight: '160px' }}
+                        rows={3}
+                        disabled={isLoading}
+                      />
+                      {isLoading && (
+                        <button
+                          type="button"
+                          onClick={handleStop}
+                          className="absolute right-3 bottom-3 flex items-center gap-1.5 px-3 py-1.5 bg-error text-white text-sm font-medium rounded-lg hover:bg-error/90 transition-colors"
+                        >
+                          <Octagon size={14} fill="currentColor" />
+                          停止
+                        </button>
+                      )}
+                      {!isLoading && query.trim() && (
+                        <button
+                          type="submit"
+                          className="absolute right-3 bottom-3 p-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          <Send size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── right: thinking chain ── */}
