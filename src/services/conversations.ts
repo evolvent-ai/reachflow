@@ -1,6 +1,15 @@
 import { API_BASE_URL } from './api';
 import type { ConversationSession, ApiMessage } from '@/types/research';
 
+export interface StreamEvent {
+  uid: string;
+  seq: number;
+  event_type: string;
+  data: any;
+  event_ts?: number;
+  elapsed_ms?: number;
+}
+
 async function getClerkToken(): Promise<string | null> {
   try {
     const clerk = (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string | null> } } }).Clerk;
@@ -52,4 +61,12 @@ export async function getConversationMessages(sessionId: string): Promise<ApiMes
     `/v1/client/conversations/${sessionId}`,
   );
   return Array.isArray(res) ? res : (res.messages ?? []);
+}
+
+/**
+ * GET /api/v1/client/stream_events/{session_id} — 查单个 session 的完整事件流记录
+ */
+export async function getSessionStreamEvents(sessionId: string): Promise<StreamEvent[]> {
+  const res = await authRequest<StreamEvent[]>(`/v1/client/stream_events/${sessionId}`);
+  return Array.isArray(res) ? res : [];
 }

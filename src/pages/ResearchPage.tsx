@@ -10,7 +10,6 @@ import {
   Plus,
   Check,
   Search,
-  X,
   Download,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -21,13 +20,11 @@ import { usePaymentStore } from '@/stores/paymentStore';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { streamResearch } from '@/services/research';
 import { getCreditsBalance } from '@/services/payment.api';
-import { getConversations, getConversationMessages } from '@/services/conversations';
+import { getConversations, getSessionStreamEvents } from '@/services/conversations';
 import type {
   SSEEvent,
   ThinkingEntry,
   ConversationSession,
-  ApiMessage,
-  ApiContentBlock,
 } from '@/types/research';
 import { router } from '@/router';
 
@@ -72,63 +69,6 @@ const formatUsageStats = (data: any): string => {
 
 const getSessionTitle = (s: ConversationSession): string =>
   s.query_preview || s.preview || s.first_user_message || s.title || s.session_id;
-
-// ─── historical message helpers ─────────────────────────────────────────────
-
-const getApiText = (content: ApiContentBlock[]): string =>
-  content.find((b) => b.type === 'text')?.text ?? '';
-
-const formatToolCall = (block: ApiContentBlock): string => {
-  const name = block.tool_name ?? '工具';
-  const input = block.tool_input ?? {};
-  if (name === 'browser_search' && input.query) return `搜索：${input.query}`;
-  if ((name === 'browser_open') && (input.link || input.url))
-    return `打开：${truncateUrl(input.link ?? input.url)}`;
-  if (name === 'code_exec') return '执行代码';
-  return name;
-};
-
-const TOOL_ICON: Record<string, string> = {
-  browser_search: '🔍',
-  browser_open: '🌐',
-  code_exec: '⚙️',
-};
-
-function HistoricalMessageItem({ msg }: { msg: ApiMessage }) {
-  if (msg.role === 'assistant') {
-    const text = getApiText(msg.content);
-    if (!text.trim()) return null;
-    return (
-      <div className="flex flex-col gap-1.5">
-        <div className="text-xs text-[#9ca3af]">AI 助手</div>
-        <div className="bg-white border border-[#e5e7eb] rounded-[18px] p-4">
-          <div className="md-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (msg.role === 'user') {
-    return null;
-  }
-
-  if (msg.role === 'assistant_tool_call') {
-    const block = msg.content.find((b) => b.type === 'tool_call');
-    if (!block) return null;
-    const icon = TOOL_ICON[block.tool_name ?? ''] ?? '🔧';
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500">
-        <span>{icon}</span>
-        <span className="truncate">{formatToolCall(block)}</span>
-      </div>
-    );
-  }
-
-  // role === 'tool': skip raw results, too noisy
-  return null;
-}
 
 // ─── thinking-entry row ──────────────────────────────────────────────────────
 
@@ -257,11 +197,8 @@ export default function ResearchPage() {
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
-  // history modal
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historicalMessages, setHistoricalMessages] = useState<ApiMessage[] | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
 
   // thinking expand state
   const [expandedThinking, setExpandedThinking] = useState<Set<string>>(new Set());
@@ -326,7 +263,7 @@ export default function ResearchPage() {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages, historicalMessages]);
+  }, [messages]);
 
   // auto-scroll thinking panel
   useEffect(() => {
@@ -353,24 +290,30 @@ export default function ResearchPage() {
     });
   };
 
-  const handleLoadSession = async (sessionId: string) => {
-    setActiveSessionId(sessionId);
-    setHistoricalMessages(null);
-    setIsLoadingHistory(true);
-    setShowHistoryModal(true);
-    try {
-      const msgs = await getConversationMessages(sessionId);
-      setHistoricalMessages(msgs);
-    } catch (err) {
-      console.error('[ResearchPage] Failed to load session:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  const handleLoadSession = async (session: ConversationSession) => {
+    if (isLoadingSession) return;
+    setActiveSessionId(session.session_id);
+    setIsLoadingSession(true);
+    clearMessages();
+    clearThinking();
 
-  const handleCloseHistoryModal = () => {
-    setShowHistoryModal(false);
-    setActiveSessionId(null);
+    // Add the user query from session metadata
+    const userQuery = session.query_preview || session.first_user_message || session.title || '';
+    if (userQuery) addMessage({ role: 'user', content: userQuery });
+    // Placeholder assistant message — final event will populate it
+    addMessage({ role: 'assistant', content: '', isStreaming: false });
+
+    try {
+      const events = await getSessionStreamEvents(session.session_id);
+      for (const ev of events) {
+        if (ev.event_type === 'user_message') continue; // skip system prompt
+        handleStreamEvent({ event: ev.event_type, type: ev.event_type as any, data: ev.data });
+      }
+    } catch (err) {
+      console.error('[ResearchPage] Failed to load session events:', err);
+    } finally {
+      setIsLoadingSession(false);
+    }
   };
 
   const handleNewConversation = () => {
@@ -751,7 +694,7 @@ export default function ResearchPage() {
                   sessions.map((session) => (
                     <button
                       key={session.session_id}
-                      onClick={() => handleLoadSession(session.session_id)}
+                      onClick={() => handleLoadSession(session)}
                       className={`w-full text-left mx-2 px-4 py-3 rounded-lg transition-colors duration-150 ${
                         activeSessionId === session.session_id
                           ? 'bg-white shadow-sm'
@@ -759,8 +702,13 @@ export default function ResearchPage() {
                       }`}
                       style={{ width: 'calc(100% - 16px)' }}
                     >
-                      <div className="text-[14px] font-normal text-[#1a1a1a] truncate leading-snug tracking-[-0.1px]">
-                        {getSessionTitle(session)}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[14px] font-normal text-[#1a1a1a] truncate leading-snug tracking-[-0.1px]">
+                          {getSessionTitle(session)}
+                        </span>
+                        {isLoadingSession && activeSessionId === session.session_id && (
+                          <Loader2 size={11} className="animate-spin text-[#9ca3af] flex-shrink-0" />
+                        )}
                       </div>
                     </button>
                   ))
@@ -969,49 +917,6 @@ export default function ResearchPage() {
         </aside>
       </div>
 
-      {/* ── history modal ── */}
-      {showHistoryModal && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) handleCloseHistoryModal(); }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden"
-            style={{ maxHeight: '85vh' }}>
-
-            {/* modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb] flex-shrink-0">
-              <div>
-                <h2 className="text-base font-semibold text-[#111827]">历史对话</h2>
-                {activeSessionId && (
-                  <p className="text-xs text-[#9ca3af] mt-0.5">{activeSessionId}</p>
-                )}
-              </div>
-              <button
-                onClick={handleCloseHistoryModal}
-                className="p-2 hover:bg-[#f3f4f6] rounded-lg transition-colors text-[#6b7280]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* modal body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-              {isLoadingHistory ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Loader2 size={24} className="animate-spin text-primary" />
-                  <span className="text-sm text-[#6b7280]">加载中...</span>
-                </div>
-              ) : !historicalMessages || historicalMessages.length === 0 ? (
-                <p className="text-sm text-[#9ca3af] text-center py-16">暂无消息记录</p>
-              ) : (
-                historicalMessages.map((msg) => (
-                  <HistoricalMessageItem key={msg.uid} msg={msg} />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
