@@ -54,6 +54,8 @@ export interface ThinkingEntry {
   detail: string;
   timestamp: number;
   isStreaming: boolean;
+  /** Cumulative elapsed ms from task start, if available */
+  elapsed_ms?: number;
 }
 
 export interface ConversationSession {

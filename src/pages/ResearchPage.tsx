@@ -70,6 +70,9 @@ const formatUsageStats = (data: any): string => {
 const getSessionTitle = (s: ConversationSession): string =>
   s.query_preview || s.preview || s.first_user_message || s.title || s.session_id;
 
+const formatElapsed = (ms: number): string =>
+  ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+
 // ─── thinking-entry row ──────────────────────────────────────────────────────
 
 const THINKING_STYLES: Record<
@@ -121,9 +124,16 @@ function ThinkingEntryRow({
         </span>
 
         {/* label */}
-        <span className={`flex-1 leading-relaxed break-all ${style.text}`}>
+        <span className={`flex-1 leading-relaxed break-all font-mono text-[11px] ${style.text}`}>
           {entry.content}
         </span>
+
+        {/* elapsed time */}
+        {entry.elapsed_ms != null && !entry.isStreaming && (
+          <span className="flex-shrink-0 font-mono text-[9px] text-[#b0b8c4] ml-1">
+            {formatElapsed(entry.elapsed_ms)}
+          </span>
+        )}
 
         {/* expand toggle for assistant_message */}
         {isAssistant && (
@@ -307,7 +317,7 @@ export default function ResearchPage() {
       const events = await getSessionStreamEvents(session.session_id);
       for (const ev of events) {
         if (ev.event_type === 'user_message') continue; // skip system prompt
-        handleStreamEvent({ event: ev.event_type, type: ev.event_type as any, data: ev.data });
+        handleStreamEvent({ event: ev.event_type, type: ev.event_type as any, data: ev.data, elapsed_ms: ev.elapsed_ms });
       }
     } catch (err) {
       console.error('[ResearchPage] Failed to load session events:', err);
@@ -338,6 +348,7 @@ export default function ResearchPage() {
     (event: SSEEvent) => {
       const type = event.event || event.type || event.data?.event || 'message';
       const data = event.data ?? event;
+      const elapsed_ms: number | undefined = event.elapsed_ms ?? event.data?.elapsed_ms;
 
       switch (type) {
         case 'llm_request':
@@ -347,6 +358,7 @@ export default function ResearchPage() {
             content: `分析输入`,
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -361,6 +373,7 @@ export default function ResearchPage() {
             content: "执行搜索任务",
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -371,6 +384,7 @@ export default function ResearchPage() {
             content: `获取到 ${data?.results?.length ?? data?.count ?? '?'} 条结果`,
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -381,6 +395,7 @@ export default function ResearchPage() {
             content: `打开：${truncateUrl(data?.url || '')}`,
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -391,6 +406,7 @@ export default function ResearchPage() {
             content: '已读取页面内容',
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -401,6 +417,7 @@ export default function ResearchPage() {
             content: '工具执行完成',
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -413,6 +430,7 @@ export default function ResearchPage() {
             content: '报告已生成',
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
         }
@@ -423,6 +441,7 @@ export default function ResearchPage() {
             content: formatUsageStats(data),
             detail: '',
             isStreaming: false,
+            elapsed_ms,
           });
           break;
 
@@ -433,6 +452,7 @@ export default function ResearchPage() {
               content: data.message,
               detail: '',
               isStreaming: false,
+              elapsed_ms,
             });
           }
           break;
@@ -880,9 +900,14 @@ export default function ResearchPage() {
             </button>
             {!thinkingCollapsed && (
               <>
-                <span className="flex-1 text-sm font-semibold text-[#111827]">思考过程</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-[#111827]">思考过程</span>
+                  {activeSessionId && (
+                    <p className="text-[9px] font-mono text-[#9ca3af] truncate mt-0.5">{activeSessionId}</p>
+                  )}
+                </div>
                 <span
-                  className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusColor[status] ?? statusColor.idle}`}
+                  className={`px-2 py-0.5 text-[10px] rounded-full font-medium flex-shrink-0 ${statusColor[status] ?? statusColor.idle}`}
                 >
                   {statusLabel[status] ?? '待机'}
                 </span>
