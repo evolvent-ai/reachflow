@@ -176,6 +176,7 @@ export default function ResearchPage() {
     finishStreaming,
     clearMessages,
     clearErrorMessages,
+    upsertReassureMessage,
     thinkingEntries,
     addThinkingEntry,
     appendOrAddThinking,
@@ -461,10 +462,7 @@ export default function ResearchPage() {
 
         case 'error':
           if (!data?.isClosing) {
-            addMessage({
-              role: 'error',
-              content: data?.message || data?.detail || '发生错误',
-            });
+            upsertReassureMessage();
           }
           break;
 
@@ -482,7 +480,7 @@ export default function ResearchPage() {
     [
       addMessage, addThinkingEntry, appendOrAddThinking,
       finishLastThinking, finishStreaming, setLastMessageContent,
-      clearErrorMessages, setStatus, refreshCredits, fetchSessions,
+      clearErrorMessages, upsertReassureMessage, setStatus, refreshCredits, fetchSessions,
     ],
   );
 
@@ -805,7 +803,7 @@ export default function ResearchPage() {
                           msg.role === 'user'
                             ? 'max-w-[75%] bg-[rgba(47,111,237,0.08)] border border-[rgba(47,111,237,0.2)]'
                             : msg.role === 'error'
-                            ? 'w-full bg-red-50 border border-red-200 text-red-600'
+                            ? 'w-full bg-amber-50 border border-amber-200 text-amber-700'
                             : 'w-full bg-white border border-[#e5e7eb]'
                         }`}
                       >

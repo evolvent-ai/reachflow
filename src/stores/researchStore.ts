@@ -16,6 +16,8 @@ interface ResearchState {
   finishStreaming: () => void;
   clearMessages: () => void;
   clearErrorMessages: () => void;
+  /** Add a reassurance hint only if none exists yet (deduplicates mid-stream errors) */
+  upsertReassureMessage: () => void;
 
   thinkingEntries: ThinkingEntry[];
   addThinkingEntry: (entry: Omit<ThinkingEntry, 'id' | 'timestamp'>) => void;
@@ -79,6 +81,21 @@ export const useResearchStore = create<ResearchState>()(
         set((state) => ({
           messages: state.messages.filter((msg) => msg.role !== 'error'),
         })),
+      upsertReassureMessage: () =>
+        set((state) => {
+          if (state.messages.some((msg) => msg.role === 'error')) return state;
+          return {
+            messages: [
+              ...state.messages,
+              {
+                id: generateId(),
+                role: 'error' as const,
+                content: '⚠️ 遇到了一些小障碍，别担心，报告仍在生成中，请稍候…',
+                timestamp: Date.now(),
+              },
+            ],
+          };
+        }),
 
       thinkingEntries: [],
       addThinkingEntry: (entry) =>
