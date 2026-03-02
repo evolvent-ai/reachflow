@@ -175,6 +175,7 @@ export default function ResearchPage() {
     setLastMessageContent,
     finishStreaming,
     clearMessages,
+    clearErrorMessages,
     thinkingEntries,
     addThinkingEntry,
     appendOrAddThinking,
@@ -423,6 +424,7 @@ export default function ResearchPage() {
 
         case 'final': {
           finishLastThinking();
+          clearErrorMessages();
           const finalContent = extractText(data);
           if (finalContent) setLastMessageContent(finalContent);
           addThinkingEntry({
@@ -480,7 +482,7 @@ export default function ResearchPage() {
     [
       addMessage, addThinkingEntry, appendOrAddThinking,
       finishLastThinking, finishStreaming, setLastMessageContent,
-      setStatus, refreshCredits, fetchSessions,
+      clearErrorMessages, setStatus, refreshCredits, fetchSessions,
     ],
   );
 

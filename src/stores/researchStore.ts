@@ -15,6 +15,7 @@ interface ResearchState {
   setLastMessageContent: (content: string) => void;
   finishStreaming: () => void;
   clearMessages: () => void;
+  clearErrorMessages: () => void;
 
   thinkingEntries: ThinkingEntry[];
   addThinkingEntry: (entry: Omit<ThinkingEntry, 'id' | 'timestamp'>) => void;
@@ -48,21 +49,36 @@ export const useResearchStore = create<ResearchState>()(
       setLastMessageContent: (content) =>
         set((state) => {
           const messages = [...state.messages];
-          const lastIdx = messages.length - 1;
-          if (lastIdx >= 0 && messages[lastIdx].role === 'assistant') {
-            messages[lastIdx] = { ...messages[lastIdx], content };
+          // Find the last assistant message (error messages may have been appended after it)
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'assistant') {
+              messages[i] = { ...messages[i], content };
+              return { messages };
+            }
           }
-          return { messages };
+          return state;
         }),
       finishStreaming: () =>
-        set((state) => ({
-          messages: state.messages.map((msg, index) =>
-            index === state.messages.length - 1 && msg.role === 'assistant'
-              ? { ...msg, isStreaming: false }
-              : msg,
-          ),
-        })),
+        set((state) => {
+          // Find the last assistant message and mark it as done (error messages may follow it)
+          let lastAssistantIdx = -1;
+          for (let i = state.messages.length - 1; i >= 0; i--) {
+            if (state.messages[i].role === 'assistant') {
+              lastAssistantIdx = i;
+              break;
+            }
+          }
+          if (lastAssistantIdx === -1) return state;
+          const messages = state.messages.map((msg, index) =>
+            index === lastAssistantIdx ? { ...msg, isStreaming: false } : msg,
+          );
+          return { messages };
+        }),
       clearMessages: () => set({ messages: [] }),
+      clearErrorMessages: () =>
+        set((state) => ({
+          messages: state.messages.filter((msg) => msg.role !== 'error'),
+        })),
 
       thinkingEntries: [],
       addThinkingEntry: (entry) =>
