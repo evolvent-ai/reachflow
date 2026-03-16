@@ -8,6 +8,7 @@ export const NAV_LINKS = [
   { label: '应用场景', href: '#scenarios' },
   { label: '价格', href: '#pricing' },
   { label: 'FAQ', href: '#faq' },
+  { label: '开始使用', href: '/research', highlight: true },
 ];
 
 export const SCENARIO_OPTIONS = [

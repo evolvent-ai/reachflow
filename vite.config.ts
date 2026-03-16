@@ -14,7 +14,8 @@ export default defineConfig({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://api.reachflow.cc',
+        target: 'http://127.0.0.1:8000',
+        // target: 'http://api.reachflow.cc',
         changeOrigin: true,
         // 保持 /api 前缀，因为后端路径也是 /api/xxx
       },

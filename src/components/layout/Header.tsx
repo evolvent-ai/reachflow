@@ -101,17 +101,28 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="relative text-[15px] text-text hover:text-primary transition-colors py-2 group"
-                onClick={() => handleNavClick(link.label)}
-              >
-                {link.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover:w-full" />
-              </a>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.highlight ? (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="btn btn-primary text-sm"
+                  onClick={() => handleNavClick(link.label)}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="relative text-[15px] text-text hover:text-primary transition-colors py-2 group"
+                  onClick={() => handleNavClick(link.label)}
+                >
+                  {link.label}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-200 group-hover:w-full" />
+                </a>
+              )
+            )}
           </nav>
 
           {/* Desktop CTA */}
@@ -176,16 +187,27 @@ export default function Header() {
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 top-[72px] bg-white z-40">
           <nav className="container py-6 flex flex-col gap-4">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-lg text-text hover:text-primary py-3 border-b border-border"
-                onClick={() => handleNavClick(link.label)}
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.highlight ? (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="btn btn-primary w-full justify-center"
+                  onClick={() => handleNavClick(link.label)}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-lg text-text hover:text-primary py-3 border-b border-border"
+                  onClick={() => handleNavClick(link.label)}
+                >
+                  {link.label}
+                </a>
+              )
+            )}
             <div className="flex flex-col gap-3 mt-4">
               <Suspense fallback={null}>
                 <SignedOut>
