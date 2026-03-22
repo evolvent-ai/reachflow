@@ -38,8 +38,8 @@ if (!isValidClerkKey) {
           publishableKey={publishableKey}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
-          afterSignInUrl="/"
-          afterSignUpUrl="/"
+          afterSignInUrl="/research"
+          afterSignUpUrl="/research"
         >
           <RouterProvider router={router} />
         </ClerkProvider>
